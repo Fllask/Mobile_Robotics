@@ -13,5 +13,5 @@ class Robot:
         """ returns: coordonées en x,y,theta globales (un vecteur 3d numpy) """
         return ""
 
-test = MyClass()
+test = Robot()
 print(test.f())

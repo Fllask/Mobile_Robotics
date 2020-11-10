@@ -16,5 +16,5 @@ class Filtering:
 
             returns:    an estimation of position a 3d numpy vector """
 
-test = MyClass()
+test = Filtering()
 print(test.f())
