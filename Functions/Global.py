@@ -30,6 +30,7 @@ def mapPlot(map,start,finish,debugLines=False):
     #plotting parameters
     fsz = 8 # size of the plotted figure
     polyColor = "blue" # color of the map polygons
+    polyFillColor = "#b8e7f5" # color of interior of the map polygons
     startColor = "green" # color of the starting point
     finishColor = "red" # color the the finish point
     debugLineColor = "black"
@@ -49,12 +50,15 @@ def mapPlot(map,start,finish,debugLines=False):
     ## plotting polygons
     for poly in map:
         plt.plot(*poly.exterior.xy,color=polyColor)
+        ax.fill(*poly.exterior.xy,color = polyFillColor)  
     
     #Displaying start and finish
-    startCircle = plt.Circle(start,radius=1,color=startColor)
+    startCircle = plt.Circle(start,radius=1,color="black")
     ax.add_artist(startCircle)
-    finishCircle = plt.Circle(finish,radius=1,color=finishColor)
+    ax.text(*start,"Start",fontsize=11,color=startColor,weight="bold")
+    finishCircle = plt.Circle(finish,radius=1,color="black")
     ax.add_artist(finishCircle)
+    ax.text(*finish,"Finish",fontsize=11,color=finishColor,weight="bold")
 
     #Plotting the debug lines
     if debugLines != False:
@@ -91,44 +95,53 @@ class Global:
 
     #returns all segements of the map polygons (usefull for intersection)
     def mapSegments(self):
-        polyVertices = [list(poly.exterior.coords) for poly in self.polyMap]
-        mapVertices = [y for x in polyVertices for y in x]
-        segments = list(itertools.combinations(mapVertices,2))
+        polyList = [list(poly.exterior.coords) for poly in self.polyMap]
+        segments = []
+        for poly in polyList:
+            segs = list(itertools.combinations(poly,2))
+            for seg in segs:
+                segments.append(seg)
+
         return segments
 
     def intersect(self,seg1,seg2):
-        for i in range(2):
-            for j in range(2):
-                if(seg1[i]==seg2[j]):
-                    return False
-        line1 = geo.LineString(seg1)
-        line2 = geo.LineString(seg2)
-        return line1.intersects(line2)
+        def intersectHelper(s1,s2):
+            def val(p,q,r):
+                return (q[1]-p[1])*(r[0]-q[0])-(q[0]-p[0])*(r[1]-q[1])
+            v = val(s1[0],s1[1],s2[0]) * val(s1[0],s1[1],s2[1])
+            return v < 0
+            
+        return intersectHelper(seg1,seg2) and intersectHelper(seg2,seg1)
 
 
     #computes all possible paths
     def paths(self):
 
         def visiblePaths(unvisited):
-
             mapSeg = self.mapSegments()
             current = unvisited.pop(0)
             paths = []
+            nextVertices = []
 
             for succ in unvisited:
                 newSeg = (current,succ)
                 flag = False
 
                 paths.append(newSeg)
+                nextVertices.append(succ)
                 for ms in mapSeg:
                     if self.intersect(ms,newSeg):
                         paths.pop()
+                        nextVertices.pop()
                         break
-
             return paths
 
         unvisited = self.navPoints();
-        paths = visiblePaths(unvisited)
+        paths = []
+        while len(unvisited) > 1:
+            nPaths = visiblePaths(unvisited)
+            for p in nPaths:
+                paths.append(p)
         
 
         return paths
@@ -142,7 +155,7 @@ class Global:
 
 
 
-start = (80.,20.)
+start = (80.,80.)
 finish = (20.,70.)
 
 test = Global(TestMap(),start,finish)
