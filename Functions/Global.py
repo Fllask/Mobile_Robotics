@@ -96,16 +96,35 @@ class Global:
         segments = list(itertools.combinations(mapVertices,2))
         return segments
 
+    def intersect(self,seg1,seg2):
+        for i in range(2):
+            for j in range(2):
+                if(seg1[i]==seg2[j]):
+                    return False
+        line1 = geo.LineString(seg1)
+        line2 = geo.LineString(seg2)
+        return line1.intersects(line2)
+
 
     #computes all possible paths
     def paths(self):
+
         def visiblePaths(unvisited):
+
             mapSeg = self.mapSegments()
             current = unvisited.pop(0)
             paths = []
+
             for succ in unvisited:
                 newSeg = (current,succ)
+                flag = False
+
                 paths.append(newSeg)
+                for ms in mapSeg:
+                    if self.intersect(ms,newSeg):
+                        paths.pop()
+                        break
+
             return paths
 
         unvisited = self.navPoints();
@@ -123,9 +142,7 @@ class Global:
 
 
 
-#print(test.f())
-
-start = (80.,30.)
+start = (80.,20.)
 finish = (20.,70.)
 
 test = Global(TestMap(),start,finish)
