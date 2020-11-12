@@ -28,7 +28,7 @@ def TestMap():
     return [polyA,polyB,polyC]
 
 """ placeholder map plotting function """
-def mapPlot(map,start,finish,debugLines=False):
+def mapPlot(map,start,finish,debugLines=False,emphasedLines = False):
     #plotting parameters
     fsz = 8 # size of the plotted figure
     polyColor = "blue" # color of the map polygons
@@ -36,6 +36,7 @@ def mapPlot(map,start,finish,debugLines=False):
     startColor = "green" # color of the starting point
     finishColor = "red" # color the the finish point
     debugLineColor = "black"
+    emphasedLineColor = "green"
 
     #defining a function to plot a polygon :
     #setting map limits
@@ -66,6 +67,10 @@ def mapPlot(map,start,finish,debugLines=False):
     if debugLines != False:
         for line in debugLines:
             plt.plot([ line[0][0],line[1][0] ],[ line[0][1],line[1][1] ],color=debugLineColor,linestyle="dashed")
+    #Plotting the emphased lines
+    if emphasedLines != False:
+        for line in emphasedLines:
+            plt.plot([ line[0][0],line[1][0] ],[ line[0][1],line[1][1] ],color=emphasedLineColor,linestyle="solid",linewidth=4)
 
     #displaying the map
     plt.show()
@@ -79,10 +84,45 @@ class Global:
         self.polyMap = polyMap
         self.start = start
         self.finish = finish
+        self.navGraph = nx.Graph()
 
     #plots the map and paths
-    def plot(self,debugLines=False):
-        mapPlot(self.polyMap,self.start,self.finish,debugLines)
+    def plot(self,debugLines=False,emphasedLines=False):
+        # I guess in the end we may just use the vision module map plot function
+        mapPlot(self.polyMap,self.start,self.finish,debugLines,emphasedLines)
+
+    #computes and plot a path (mostly for showoff purposes)
+    def plotPath(self):
+        path = self.returnPath(self.polyMap,self.start,self.finish)
+        dpath = []
+        for i in range(len(path)-1):
+            dpath.append((path[i],path[i+1]))
+        self.plot(self.computePaths(),dpath)
+
+    # plots the map as a networkx graph
+    def netPlot(self,G,path=False,start = False, finish = False):
+        def generatePos(nodes):
+            pos = {}
+            for node in nodes:
+                pos[node] = [node[0],-node[1]] # node[1] is negative because we use top-right coords
+            return pos
+
+        pos = generatePos(G.nodes)
+        
+        nx.draw(G,pos,edge_cmap=plt.cm.Blues)
+        
+        if path != False:
+            nx.draw_networkx_nodes(G,pos,nodelist=path,node_color='r')
+            path_edges = []
+            for i in range(len(path)-1):
+                edge = (path[i],path[i+1])
+                path_edges.append(edge)
+            nx.draw_networkx_edges(G,pos,edgelist=path_edges,edge_color='r',width=3)
+        if start != False:
+            nx.draw_networkx_nodes(G,pos,nodelist=[start],node_color='g')
+        if start != False:    
+            nx.draw_networkx_nodes(G,pos,nodelist=[finish],node_color='b')
+        plt.show()
 
     # Computes possible vertex the robot can drive to (first vertex in array is start, last is finish)
     def navPoints(self):
@@ -116,12 +156,13 @@ class Global:
         return intersectHelper(seg1,seg2) and intersectHelper(seg2,seg1)
 
 
-    #computes all possible paths
-    def paths(self):
+    #computes all possible paths and generates the weighted graph for dikjstra
+    def computePaths(self):
 
         def visiblePaths(unvisited):
             mapSeg = self.mapSegments()
             current = unvisited.pop(0)
+
             paths = []
             nextVertices = []
 
@@ -148,18 +189,38 @@ class Global:
 
         return paths
 
+    #generates a weighted graph that can then be used to compute shortest path
+    def computeGraph(self):
+        vertices = self.navPoints()
+        edges = self.computePaths()
+
+        self.navGraph = nx.Graph()
+        self.navGraph.add_nodes_from(vertices)
+        for e in edges:
+            l=np.linalg.norm(np.array(e[0])-np.array(e[1]))
+            self.navGraph.add_edge(e[0],e[1],weight=l)
+        
+        return self.navGraph
+
     def returnPath(self,map,startPoint,endPoint):
         """ takes map: an array of scipy polygons, startPoint 
         and endPoint two scipy vectors (3d) returns a 
         list of 3d scipy vectors representing the points along the path"""
-        return ""
+
+        self.computeGraph()
+        graphPath = nx.shortest_path(self.navGraph,source=self.start,target=self.finish)
+        return graphPath
 
 
 
 
-start = (80.,80.)
-finish = (20.,70.)
+start = (71.,31.)
+finish = (45.,83.)
 
 test = Global(TestMap(),start,finish)
 
-test.plot(test.paths())
+#test.plot(test.computePaths())
+#test.plot(test.computePaths())
+#test.netPlot(test.computeGraph())
+path = test.returnPath(TestMap(),start,finish)
+test.plotPath()
