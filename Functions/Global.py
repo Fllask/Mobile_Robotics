@@ -1,6 +1,8 @@
 """ Developped by: Titouan """
 
 import matplotlib.pyplot as plt
+import networkx as nx
+import numpy as np
 from shapely import geometry as geo
 import itertools
 import operator
