@@ -1,5 +1,6 @@
 class MyClass:
     """A simple example class"""
+    "Test push"
     i = 12345
 
     def __init__(self):
