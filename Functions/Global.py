@@ -1,79 +1,13 @@
 """ Developped by: Titouan """
 
+from Utilities import Utilities
 import matplotlib.pyplot as plt
 import networkx as nx
 import numpy as np
-from shapely import geometry as geo
 import itertools
 import operator
 import copy
 
-""" just returns a test map so that test runs of the planning algorithm may be computed """
-def TestMap():
-    polyA = geo.Polygon([(40.,30.),
-                         (40.,50.),
-                         (45.,40.),
-                         (45.,35.)])
-
-    polyB = geo.Polygon([(70.,35.),
-                         (60.,46.),
-                         (50.,63.),
-                         (70.,55.)])
-
-    polyC = geo.Polygon([(35.,60.),
-                         (35.,70.),
-                         (42.,76.),
-                         (45.,60.)])
-
-    return [polyA,polyB,polyC]
-
-""" placeholder map plotting function """
-def mapPlot(map,start,finish,debugLines=False,emphasedLines = False):
-    #plotting parameters
-    fsz = 8 # size of the plotted figure
-    polyColor = "blue" # color of the map polygons
-    polyFillColor = "#b8e7f5" # color of interior of the map polygons
-    startColor = "green" # color of the starting point
-    finishColor = "red" # color the the finish point
-    debugLineColor = "black"
-    emphasedLineColor = "green"
-
-    #defining a function to plot a polygon :
-    #setting map limits
-    plt.xlim(0,100)
-    plt.ylim(0,100)
-
-    fig = plt.gcf()
-    ax = fig.gca()
-
-    ## we need origin to right so we flip the plot
-    ax.invert_yaxis()
-    fig.set_size_inches((fsz,fsz))
-
-    ## plotting polygons
-    for poly in map:
-        plt.plot(*poly.exterior.xy,color=polyColor)
-        ax.fill(*poly.exterior.xy,color = polyFillColor)  
-    
-    #Displaying start and finish
-    startCircle = plt.Circle(start,radius=1,color="black")
-    ax.add_artist(startCircle)
-    ax.text(*start,"Start",fontsize=11,color=startColor,weight="bold")
-    finishCircle = plt.Circle(finish,radius=1,color="black")
-    ax.add_artist(finishCircle)
-    ax.text(*finish,"Finish",fontsize=11,color=finishColor,weight="bold")
-
-    #Plotting the debug lines
-    if debugLines != False:
-        for line in debugLines:
-            plt.plot([ line[0][0],line[1][0] ],[ line[0][1],line[1][1] ],color=debugLineColor,linestyle="dashed")
-    #Plotting the emphased lines
-    if emphasedLines != False:
-        for line in emphasedLines:
-            plt.plot([ line[0][0],line[1][0] ],[ line[0][1],line[1][1] ],color=emphasedLineColor,linestyle="solid",linewidth=4)
-
-    #displaying the map
-    plt.show()
 
 """ Global Navigation Class """
 class Global:
@@ -85,11 +19,12 @@ class Global:
         self.start = start
         self.finish = finish
         self.navGraph = nx.Graph()
+        self.utilities = Utilities()
 
     #plots the map and paths
     def plot(self,debugLines=False,emphasedLines=False):
         # I guess in the end we may just use the vision module map plot function
-        mapPlot(self.polyMap,self.start,self.finish,debugLines,emphasedLines)
+        self.utilities.mapPlot(self.polyMap,self.start,self.finish,debugLines,emphasedLines)
 
     #computes and plot a path (mostly for showoff purposes)
     def plotPath(self):
@@ -127,8 +62,14 @@ class Global:
     # Computes possible vertex the robot can drive to (first vertex in array is start, last is finish)
     def navPoints(self):
         #print(list(self.polyMap[i].exterior.coords))
-        polyVertices = [list(poly.exterior.coords) for poly in self.polyMap]
-        mapVertices = [y for x in polyVertices for y in x]
+        #polyVertices = [list(poly.exterior.coords) for poly in self.polyMap]
+        mapVertices = []
+        for poly in self.polyMap:
+            for vert in poly:
+                mapVertices.append(vert)
+        
+
+        #mapVertices = [y for x in polyVertices for y in x]
         vertices = copy.deepcopy(mapVertices)
         vertices.insert(0,self.start)
         vertices.append(self.finish)
@@ -137,13 +78,12 @@ class Global:
 
     #returns all segements of the map polygons (usefull for intersection)
     def mapSegments(self):
-        polyList = [list(poly.exterior.coords) for poly in self.polyMap]
+        #polyList = [list(poly.exterior.coords) for poly in self.polyMap]
         segments = []
-        for poly in polyList:
+        for poly in self.polyMap:
             segs = list(itertools.combinations(poly,2))
             for seg in segs:
                 segments.append(seg)
-
         return segments
 
     def intersect(self,seg1,seg2):
@@ -191,10 +131,17 @@ class Global:
 
     #generates a weighted graph that can then be used to compute shortest path
     def computeGraph(self):
-        vertices = self.navPoints()
-        edges = self.computePaths()
+        rawVerts = self.navPoints()
+        rawEdges = self.computePaths()
+        vertices = []
+        edges = []
 
         self.navGraph = nx.Graph()
+        for vert in rawVerts:
+            vertices.append( (vert[0],vert[1]) )
+        for edge in rawEdges:
+            edges.append( [(edge[0][0],edge[0][1]),(edge[1][0],edge[1][1])] )
+
         self.navGraph.add_nodes_from(vertices)
         for e in edges:
             l=np.linalg.norm(np.array(e[0])-np.array(e[1]))
@@ -210,17 +157,3 @@ class Global:
         self.computeGraph()
         graphPath = nx.shortest_path(self.navGraph,source=self.start,target=self.finish)
         return graphPath
-
-
-
-
-start = (71.,31.)
-finish = (45.,83.)
-
-test = Global(TestMap(),start,finish)
-
-#test.plot(test.computePaths())
-#test.plot(test.computePaths())
-#test.netPlot(test.computeGraph())
-path = test.returnPath(TestMap(),start,finish)
-test.plotPath()
