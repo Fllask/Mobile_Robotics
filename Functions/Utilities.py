@@ -8,7 +8,8 @@ class Utilities:
         self.data = []
 
     """ 
-    Returns a test map so that test runs of the planning algorithm may be computed, also works as a reference of what a map object should look like
+    Returns a test map so that test runs of the planning algorithm 
+    may be computed, also works as a reference of what a map object should look like
     """
     def TestMap(self):
         polyA = [[40.,30.],
