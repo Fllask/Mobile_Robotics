@@ -50,7 +50,7 @@ class Utilities:
 
             emphasedLines <- an array of 2 elements array of 2 coordinates, each of the two element array will be plotted really a thick width in green : usefull to represent important stuff, such as the computed path
     """
-    def mapPlot(self,map,start,finish,debugLines=False,emphasedLines = False):
+    def mapPlot(self,map=False,start=False,finish=False,debugLines=False,emphasedLines = False):
         #plotting parameters
         fsz = 8 # size of the plotted figure
         polyColor = "blue" # color of the map polygons
@@ -73,25 +73,28 @@ class Utilities:
         fig.set_size_inches((fsz,fsz))
 
         ## plotting polygons
-        for poly in map:
-            for i in range(len(poly)-1):
-                plt.plot([ poly[i][0],poly[i+1][0] ],[ poly[i][1],poly[i+1][1] ],color=polyColor)
-            plt.plot([ poly[len(poly)-1][0],poly[0][0] ],[ poly[len(poly)-1][1],poly[0][1] ],color=polyColor)
-            x = []
-            y = []
-            for vertex in poly:
-                x.append(vertex[0])
-                y.append(vertex[1])
-            plt.Polygon(poly,color=polyColor)
-            ax.fill(x,y,color = polyFillColor)  
+        if map !=False:
+            for poly in map:
+                for i in range(len(poly)-1):
+                    plt.plot([ poly[i][0],poly[i+1][0] ],[ poly[i][1],poly[i+1][1] ],color=polyColor)
+                plt.plot([ poly[len(poly)-1][0],poly[0][0] ],[ poly[len(poly)-1][1],poly[0][1] ],color=polyColor)
+                x = []
+                y = []
+                for vertex in poly:
+                    x.append(vertex[0])
+                    y.append(vertex[1])
+                plt.Polygon(poly,color=polyColor)
+                ax.fill(x,y,color = polyFillColor)  
         
         #Displaying start and finish
-        startCircle = plt.Circle(start,radius=1,color="black")
-        ax.add_artist(startCircle)
-        ax.text(*start,"Start",fontsize=11,color=startColor,weight="bold")
-        finishCircle = plt.Circle(finish,radius=1,color="black")
-        ax.add_artist(finishCircle)
-        ax.text(*finish,"Finish",fontsize=11,color=finishColor,weight="bold")
+        if start != False:
+            startCircle = plt.Circle(start,radius=1,color="black")
+            ax.add_artist(startCircle)
+            ax.text(*start,"Start",fontsize=11,color=startColor,weight="bold")
+        if finish != False:
+            finishCircle = plt.Circle(finish,radius=1,color="black")
+            ax.add_artist(finishCircle)
+            ax.text(*finish,"Finish",fontsize=11,color=finishColor,weight="bold")
 
         #Plotting the debug lines
         if debugLines != False:

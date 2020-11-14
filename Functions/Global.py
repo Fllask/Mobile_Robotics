@@ -2,6 +2,8 @@
 
 from Utilities import Utilities
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
+import matplotlib.colors as plt_colors
 import networkx as nx
 import numpy as np
 import itertools
@@ -20,6 +22,7 @@ class Global:
         self.finish = finish
         self.navGraph = nx.Graph()
         self.utilities = Utilities()
+        self.gPath = False
 
     #plots the map and paths
     def plot(self,debugLines=False,emphasedLines=False):
@@ -27,12 +30,15 @@ class Global:
         self.utilities.mapPlot(self.polyMap,self.start,self.finish,debugLines,emphasedLines)
 
     #computes and plot a path (mostly for showoff purposes)
-    def plotPath(self):
+    def plotPath(self,plotMap=True,plotGraph=False):
         path = self.returnPath(self.polyMap,self.start,self.finish)
         dpath = []
         for i in range(len(path)-1):
             dpath.append((path[i],path[i+1]))
-        self.plot(self.computePaths(),dpath)
+        if plotMap:
+            self.plot(self.computePaths(),dpath)
+        if plotGraph:
+            test.netPlot(self.navGraph,self.gPath,self.start,self.finish)
 
     # plots the map as a networkx graph
     def netPlot(self,G,path=False,start = False, finish = False):
@@ -42,21 +48,28 @@ class Global:
                 pos[node] = [node[0],-node[1]] # node[1] is negative because we use top-right coords
             return pos
 
+        norm = plt_colors.Normalize(vmin=0, vmax=150)
+
         pos = generatePos(G.nodes)
         
-        nx.draw(G,pos,edge_cmap=plt.cm.Blues)
+        nx.draw(G,pos,node_color="#666666",width=1,with_labels=True)
+        
+        
+
+        nodeStart = ( (start[0],start[1]) )
+        nodeFinish = ( (finish[0],finish[1]) )
         
         if path != False:
             nx.draw_networkx_nodes(G,pos,nodelist=path,node_color='r')
             path_edges = []
             for i in range(len(path)-1):
-                edge = (path[i],path[i+1])
+                edge = ((path[i][0],path[i][1]),(path[i+1][0],path[i+1][1]))
                 path_edges.append(edge)
             nx.draw_networkx_edges(G,pos,edgelist=path_edges,edge_color='r',width=3)
         if start != False:
-            nx.draw_networkx_nodes(G,pos,nodelist=[start],node_color='g')
+            nx.draw_networkx_nodes(G,pos,nodelist=[nodeStart],node_color='g')
         if start != False:    
-            nx.draw_networkx_nodes(G,pos,nodelist=[finish],node_color='b')
+            nx.draw_networkx_nodes(G,pos,nodelist=[nodeFinish],node_color='b')
         plt.show()
 
     # Computes possible vertex the robot can drive to (first vertex in array is start, last is finish)
@@ -155,5 +168,6 @@ class Global:
         list of 3d scipy vectors representing the points along the path"""
 
         self.computeGraph()
-        graphPath = nx.shortest_path(self.navGraph,source=self.start,target=self.finish)
+        graphPath = nx.dijkstra_path(self.navGraph,source=self.start,target=self.finish)
+        self.gPath = graphPath
         return graphPath
