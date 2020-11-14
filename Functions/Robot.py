@@ -2,7 +2,7 @@
 class Robot:
     """ Handles the control of the robot """
     i = 12345
-
+    #test
     def __init__(self):
         self.data = []
 
