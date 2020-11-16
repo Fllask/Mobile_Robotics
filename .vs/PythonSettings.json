@@ -1,5 +1,5 @@
 {
-    "Interpreter": "env\\Scripts\\python.exe",
-    "python jedi.Enabled" :  true
-    
+  "Interpreter": "env\\Scripts\\python.exe",
+  "python jedi.Enabled": true,
+  "SuppressEnvironmentCreationPrompt": true
 }
