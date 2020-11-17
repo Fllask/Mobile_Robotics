@@ -2,4 +2,5 @@ serial>=0.0.97
 tqdm>=4.51.0
 matplotlib>=3.3.2
 networkx>=2.5
-numpy>=1.19.4
+numpy>=1.19.3
+
