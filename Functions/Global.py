@@ -38,7 +38,7 @@ class Global:
         if plotMap:
             self.plot(self.computePaths(),dpath)
         if plotGraph:
-            test.netPlot(self.navGraph,self.gPath,self.start,self.finish)
+            self.netPlot(self.navGraph,self.gPath,self.start,self.finish)
 
     # plots the map as a networkx graph
     def netPlot(self,G,path=False,start = False, finish = False):
@@ -171,3 +171,14 @@ class Global:
         graphPath = nx.dijkstra_path(self.navGraph,source=self.start,target=self.finish)
         self.gPath = graphPath
         return graphPath
+
+sx=80.
+sy=20.
+fx=20.
+fy=60.
+start = (sx,sy)
+finish = (fx,fy)
+
+ut = Utilities()
+test = Global(ut.TestMap(),start,finish)
+test.plotPath(plotGraph=False,plotMap=False)
