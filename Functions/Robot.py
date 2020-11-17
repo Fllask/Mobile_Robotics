@@ -6,6 +6,7 @@ class Robot:
     def __init__(self, A, B):
         self.A = A
         self.B = B
+        
 
 
     def stateEstimator(self):
