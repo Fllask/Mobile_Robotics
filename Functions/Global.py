@@ -171,14 +171,3 @@ class Global:
         graphPath = nx.dijkstra_path(self.navGraph,source=self.start,target=self.finish)
         self.gPath = graphPath
         return graphPath
-
-sx=80.
-sy=20.
-fx=20.
-fy=60.
-start = (sx,sy)
-finish = (fx,fy)
-
-ut = Utilities()
-test = Global(ut.TestMap(),start,finish)
-test.plotPath(plotGraph=False,plotMap=False)
