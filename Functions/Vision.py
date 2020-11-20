@@ -63,30 +63,6 @@ class Features:
     def isUsable():
         return self.usable
 
-        
-        
-class affine:
-    def __init__(self, A =np.array([]), v= np.array([])):
-        if A.size == 0:
-            self.A = np.array([[1,0],[0,1]])
-        else:
-            self.A = A
-        if  v.size==0:
-            self.v = np.array([[100,0]]).T
-        else:
-            self.v = v
-        self.iA = linalg.inv(self.A)
-            
-    def transform(self,x):
-        #return Ax+b
-        if x.size == 2:
-            x = np.reshape(x,(2,1))
-        return np.add(np.dot(self.iA,x),self.v)
-    def invTransform(self,x):
-        #return inv(A)(x-b)
-        if x.size == 2:
-            x = np.reshape(x,(2,1))
-        return np.dot(self.A,np.subtract(x,self.v))
     
 class colorfilter:
     def __init__(self, color):
@@ -120,14 +96,15 @@ def projection(corners):
     
     #project TL on (5,5), then calculate the least mean square transformation
     
-    vbp = np.subtract(np.array([corners.T[0,:]]),np.array([[5,5]])) #translation vector in the image base
-    A = np.subtract(corners.T[1:,:],vbp)
-    B = np.array([[95,5],[5,95],[95,95]])
-    T = linalg.lstsq(A,B)[0]
-    print(T)
-    v = np.dot(T,vbp.T)
-    trans = affine(A = T, v = vbp.T)
+    rcorners = np.array([[5,5],[95,5],[5,95],[95,95]],np.float32)
+    trans = cv2.getPerspectiveTransform(corners, rcorners)
     return trans
+def applyTransform(trans,x):
+    x = x.reshape(2)
+    xp = np.append(x,1)
+    yp = np.dot(trans,xp)
+    y = (yp/yp[2])[0:2]
+    return y
 
     
 def getCentroid(imageBin):

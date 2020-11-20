@@ -10,7 +10,9 @@ import skimage
 import matplotlib as plt
 from skimage import morphology
 import Vision as v
-input_path = "1.jpg"
+from scipy import linalg
+
+input_path = "2.jpg"
 output_path = "output.avi"
 DISPLAY_GRAPH = True
 
@@ -46,18 +48,28 @@ masky= fily.get_mask(frame)
 TR = v.getCentroid(masky)
 
 
-corners = np.array([TL,TR,BL,BR]).T
+corners = np.array([TL,TR,BL,BR], np.float32)
 trans = v.projection(corners)
 
-point = np.array([[50,50]]).T
-realpoint = trans.transform(TL).astype(int).reshape(2)
-print(tuple(realpoint.reshape((2))))
 if DISPLAY_GRAPH:
-    cv2.circle(frame, (int(TL[1]),int(TL[0])), 15, (0,255,0), thickness=3, lineType=8, shift=0)
-    cv2.circle(frame, (int(BL[1]),int(BL[0])), 15, (0,255,0), thickness=3, lineType=8, shift=0)
-    cv2.circle(frame, (int(TR[1]),int(TR[0])), 15, (0,255,0), thickness=3, lineType=8, shift=0)
-    cv2.circle(frame, (int(BR[1]),int(BR[0])), 15, (0,255,0), thickness=3, lineType=8, shift=0)
-    cv2.circle(frame, (realpoint[1], realpoint[0]), 15, (255,255,0), thickness=3, lineType=8, shift=0)
+    
+    #real centroids
+    cv2.circle(frame, (int(TL[0]),int(TL[1])), 15, (0,255,0), thickness=3, lineType=8, shift=0)
+    cv2.circle(frame, (int(BL[0]),int(BL[1])), 15, (0,255,0), thickness=3, lineType=8, shift=0)
+    cv2.circle(frame, (int(TR[0]),int(TR[1])), 15, (0,255,0), thickness=3, lineType=8, shift=0)
+    cv2.circle(frame, (int(BR[0]),int(BR[1])), 15, (0,255,0), thickness=3, lineType=8, shift=0)
+    
+    #calculated centroid
+    cTL = v.applyTransform(linalg.inv(trans),np.array([0,0]))
+    cTR  = v.applyTransform(linalg.inv(trans),np.array([95,5]))
+    cBL  = v.applyTransform(linalg.inv(trans),np.array([5,95]))
+    cBR  = v.applyTransform(linalg.inv(trans),np.array([95,95]))
+    cv2.circle(frame, tuple(cTL.astype(int)), 15, (255,0,0), thickness=3, lineType=8, shift=0)
+    cv2.circle(frame, tuple(cTR.astype(int)), 15, (255,0,0), thickness=3, lineType=8, shift=0)
+    cv2.circle(frame, tuple(cBL.astype(int)), 15, (255,0,0), thickness=3, lineType=8, shift=0)
+    cv2.circle(frame, tuple(cBR.astype(int)), 15, (255,0,0), thickness=3, lineType=8, shift=0)
+    
+    
     
     cv2.imshow("test",frame)
     cv2.waitKey(0)
