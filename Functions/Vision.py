@@ -120,6 +120,6 @@ def getcoord(imageBin, trans):
     
 
 test = Vision()
-#tr = projection(test.corners)
+# tr = projection(test.corners)
 
-#print(tr.transform(np.array([[0.5,0.5]]).T))
+# print(tr.transform(np.array([[0.5,0.5]]).T))
