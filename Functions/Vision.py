@@ -1,41 +1,45 @@
 """ Developped by: Flask """
-import sys
-import os  # methods to work with file/directory paths
-import getopt #get arguments
 import cv2 #read video and images
 import numpy as np
-import time #wait, sleep
-import skimage
-import skimage.io as io
-import math
-import matplotlib.pyplot as plt
-from skimage import color, filters, measure, util, morphology
+from skimage import measure, morphology
 from scipy import linalg
 
-CIRCLE = 1
-SQUARE = 2
-POLYGON = 3
-BLACK = np.array([0,0,0])
-WHITE = np.array([255,255,255])
-RED = np.array([255,0,0])
 
+def getTransform(image):
+    #return a geometric transform (usable with cv2.warpPerspective or with )
+    filr = colorfilter("RED")
+    filg = colorfilter("GREEN")
+    filb = colorfilter("BLUE")
+    fily = colorfilter("YELLOW")
+    maskr= filr.get_mask(image)
+    BL = getCentroid(maskr)
+    maskg= filg.get_mask(image)
+    TL = getCentroid(maskg)
+    maskb= filb.get_mask(image)
+    BR = getCentroid(maskb)
+    masky= fily.get_mask(image)
+    TR = getCentroid(masky)
+    corners = np.array([TL,TR,BL,BR], np.float32)
+    trans = projection(corners)
+    return trans
 
 class Vision:
     """ Handles vision """
     i = 12345
 
-    def __init__(self):
-        self.data = []
-        self.corners = np.array([[0,0],[1,0],[0,1],[1,1]]).T
-    def f(self):
-        corners = 0
-        return corners
+    def __init__(self,image):
+        self.trans = getTransform(image)
+        self.map = createMap(image,self.trans)
+        
 
-    def returnMap(self,oldmap=[]):
-        """ returns an object containing the map: an array of scipy 
-        polygons and the start and end points (2d numpy vectors) """
-        map = Features()
-        return map.getObstacles()
+    def getMap(self, downscale = True):
+        #return a map of polygons (numpy array of size (n.polygons, n.corners,1,2))
+        #the corners of the maps are at (0,0) to (100,100)
+        if downscale:
+            return np.array([np.array(el).astype(float)/10 for el in self.map])
+        else:
+            return self.map
+
 
     def returnDynamicCoordinates(self):
         """ returns an object containing the coordinates of the robot (a 3d numpy vector) 
@@ -46,26 +50,11 @@ class Vision:
             return coord
         else:
             return False
-class Features:
-    def __init__(self, polygons = np.array([[10,20],[20,10],[50,50],[10,10]]), 
-                 robot= np.array([10,10,0]), end = np.array([90,90]),
-                 usable = True):
-        self.obstacles = polygons
-        self.robot = robot
-        self.end = end
-        self.usable = usable
-    def getObstacles():
-        return self.obstacles
-    def getEnd():
-        return self.end
-    def getRobotPos():
-        return self.robot
-    def isUsable():
-        return self.usable
 
     
 class colorfilter:
     def __init__(self, color):
+        self.morph = False
         if color == "RED":
             self.band = np.array([[6,29],[8,35],[72,97]])
         if color == "YELLOW":
@@ -75,8 +64,8 @@ class colorfilter:
         if color == "GREEN":
              self.band = np.array([[11,41],[58,94],[46,77]])
         if color == "BLACK":
-             self.band = np.array([[0,39],[0,166],[0,181]])
-        
+             self.band = np.array([[0,39],[0,50],[0,50]])
+             self.morph = True
     def get_mask(self,image):
         mask = np.zeros((image.shape[0], image.shape[1]))
         for x in range(image.shape[0]):
@@ -86,8 +75,13 @@ class colorfilter:
                 if (pix>self.band[:,0]).all() & (pix<self.band[:,1]).all():
                     mask[x,y] = 1
                     #print("CAL")
-        morphology.binary_opening(mask, out=mask)
-        morphology.binary_closing(mask,out=mask)
+        if self.morph:
+
+            morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
+            morphology.binary_closing(mask,selem = morphology.square(3), out = mask)
+        else:
+            morphology.binary_opening(mask, out=mask)
+            morphology.binary_closing(mask,out=mask)
         return mask
     
     
@@ -96,17 +90,48 @@ def projection(corners):
     
     #project TL on (5,5), then calculate the least mean square transformation
     
-    rcorners = np.array([[5,5],[95,5],[5,95],[95,95]],np.float32)
+    rcorners = np.array([[5,5],[95,5],[5,95],[95,95]],np.float32)*10
     trans = cv2.getPerspectiveTransform(corners, rcorners)
     return trans
 def applyTransform(trans,x):
+    #note that trans transform an image of size(img) to a (1000,1000) grid
+    #to get a correct transform if you use it, please multiply the input by 10
     x = x.reshape(2)
     xp = np.append(x,1)
-    yp = np.dot(trans,xp)
+    yp = np.dot(linalg.inv(trans),xp)
     y = (yp/yp[2])[0:2]
     return y
 
-    
+def createMap(img,trans,R_ROBOT = 65):
+    filter_poly = colorfilter("BLACK")
+    maskpoly = filter_poly.get_mask(img)
+    polyproj	=	cv2.warpPerspective(maskpoly, trans, (1000,1000))
+    ret, bin_polygons = cv2.threshold(polyproj,0.2,1,0)
+    margin = morphology.binary_dilation(bin_polygons,selem = morphology.disk(R_ROBOT))
+    polyprojbin = margin.astype(np.uint8)
+    contours, ret = cv2.findContours(polyprojbin, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
+    polygons = []
+    for c in contours:
+        polygon    =  cv2.approxPolyDP(c, 15, True)
+        polygons.append(polygon)
+    return polygons
+
+def get_first_frame(input):
+    video = cv2.VideoCapture(input)
+    if(video.isOpened() == False):
+        print("Error opening video")
+
+    #get first frame for object recognition
+    video.set(1, 0)
+    ret, frame = video.read()
+    return frame
+def get_image(input):
+    frame = cv2.imread(input)
+    small_frame = cv2.resize(frame,(624,416))
+    return np.array(small_frame)
+
+
+
 def getCentroid(imageBin):
     moments = measure.moments(imageBin, order = 1)
     centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
@@ -119,7 +144,6 @@ def getcoord(imageBin, trans):
     
     
 
-test = Vision()
 #tr = projection(test.corners)
 
 #print(tr.transform(np.array([[0.5,0.5]]).T))
