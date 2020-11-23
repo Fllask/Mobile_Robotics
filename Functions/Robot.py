@@ -22,7 +22,7 @@ class Robot:
         self.global_path=global_path
         self.Pos=InitPos   # x,y and theta
         self.node=0
-
+        #self.th = Thymio.serial(port="\\.\COM3", refreshing_rate=0.1)
         self.a=None
         self.b=None
         self.p=None
@@ -101,9 +101,9 @@ class Robot:
 
         return self.ML
 
-    def run_on_thymio(self,th):
-        th.set_var("motor.left.target", self.ML)
-        th.set_var("motor.right.target", self.MR)
+    def run_on_thymio(self):
+        self.th.set_var("motor.left.target", self.ML)
+        self.th.set_var("motor.right.target", self.MR)
         return self.ML
 
     def compute_Pos(self):
@@ -124,7 +124,7 @@ class Robot:
 
 
 
-    def thymio(self,th,vTOm,wTOm,Ts):
+    def thymio(self,vTOm,wTOm,Ts):
         while True:
             self.compute_state_equation(Ts)
             self.compute_Pos()
@@ -132,30 +132,11 @@ class Robot:
 
             self.check()
             self.compute_input(vTOm,wTOm)
-            self.run_on_thymio(th)
+            self.run_on_thymio()
 
             time.sleep(Ts)
 
             if self.p<1 and self.node==len(self.global_path)-2:
-                th.set_var("motor.left.target", 0)
-                th.set_var("motor.right.target", 0)
+                self.th.set_var("motor.left.target", 0)
+                self.th.set_var("motor.right.target", 0)
         return self.Pos[0]
-
-    
-global_path=[(0,0),(60,0),(60,31.5),(75,63),(90,94.5)] #points for the directio
-Ts=0.1 #sampling time
-
-Pos_xy=np.asarray(  global_path[0], dtype = None, order = None )
-PosInit=np.append(Pos_xy, 2.0)  #assume initial angle equal to 0
-
-th = Thymio.serial(port="\\.\COM3", refreshing_rate=0.1)
-time.sleep(3) # To make sure the Thymio has had time to connect
-R=4.7 #cm 
-vTOm=31.25
-wTOm=(200.0*180)/(80*m.pi)
-
-kp=0.15
-ka=0.4
-kb=-0.07
-
-Robot(global_path,PosInit,Ts,kp,ka,kb).thymio(th,vTOm,wTOm,Ts) #test if it works 

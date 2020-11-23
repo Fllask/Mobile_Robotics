@@ -14,7 +14,7 @@ from tqdm import tqdm
 
 class Filtering:
 
-    def __init__(self, Rvel, Rcam, Q, robot, Hvel):
+    def __init__(self, Rvel, Rcam, Q, robot, Hvel, Ts):
         self.Rvel = Rvel
         self.Rcam = Rcam
         self.Q = Q
@@ -24,6 +24,7 @@ class Filtering:
         self.Hvel = Hvel
         self.Pest_priori = Q
         self.robot = robot
+        self.Ts = Ts
     
     @staticmethod
     def update(X_est_priori,P_est_priori, zk, H, A, R):
@@ -40,14 +41,20 @@ class Filtering:
 
         return X_est, P_est
 
-    def kalmanRectiligne(self, Xcam, Xest_priori, measuredSpeed):
+    def kalman(self, Xcam, Xest_priori):
         """Xcam is measured state with camera,
            X_est is predicted state from a priori state (by State Space), 
            A, B, are state space parameters, 
            V is the velocity"""
+
+        theta = robot.Pos[1]
+        vR_measured = self.robot.th.get_var('motor.right.speed')
+        VL_measured = self.robot.th.get_var('motor.left.speed')
+
+        V_measured = np.array([[vR_measured],[vL_measured]])
         
-        A = self.robot.A
-        B = self.robot.B
+        A = np.array([[1, 0, 0, self.Ts*m.cos(theta)/2, self.Ts*m.cos(theta)/2],[0, 1, 0, self.Ts*m.cos(theta)/2, self.Ts*m.sin(theta)/2],
+                     [0, 0, 1, 1/(2*4.7), 1/(2*4.7)],[0, 0, 0, 1, 0],[0, 0, 0, 0, 1]]) 
 
         
         #Prediction
@@ -59,7 +66,7 @@ class Filtering:
 
         #Update for velocity sensor
 
-        X_est, P_est = self.update(X_est, P_est, measuredSpeed, self.Hvel, A, self.Rvel)
+        X_est, P_est = self.update(X_est, P_est,V_measured, self.Hvel, A, self.Rvel)
 
         #Update for camera sensor
 
