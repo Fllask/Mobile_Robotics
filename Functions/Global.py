@@ -38,7 +38,7 @@ class Global:
         if plotMap:
             self.plot(self.computePaths(),dpath)
         if plotGraph:
-            test.netPlot(self.navGraph,self.gPath,self.start,self.finish)
+            self.netPlot(self.navGraph,self.gPath,self.start,self.finish)
 
     # plots the map as a networkx graph
     def netPlot(self,G,path=False,start = False, finish = False):
