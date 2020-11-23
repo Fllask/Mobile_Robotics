@@ -38,59 +38,48 @@ class Robot:
     
     def compute_pba(self):
             
-        print(self.node)
-        self.b=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
-        print('pos1',self.global_path[(self.node)])
-        print('pos2',self.global_path[(self.node+1)])
-        print('self global path',self.global_path)
+        #print(self.node)
+        self.b=-ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
+        #print('pos1',self.global_path[(self.node)])
+        #print('pos2',self.global_path[(self.node+1)])
+        #print('self global path',self.global_path)
         self.a=-self.Pos[2]-self.b
-        print('POS',self.Pos[0:2])
+        #print('POS',self.Pos[0:2])
         self.p=ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
-        print('self b',self.b)
-        print('self.a',self.a)
-        print('self.p',self.p)
+        self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
+        #print('self b',self.b)
+        #print('self.a',self.a)
+        #print('self.p',self.p)
         return self.b
 
-    
+    # assume alpha(0)is between -pi/2 and pi/2 and stays between those two values
     def compute_state_equation(self,Ts):
-        if self.a>-m.pi/2 and self.a<m.pi/2:
-            self.p=self.p*(1-Ts*self.kp*m.cos(self.a))
-            print('p after',self.p)
-            self.a=self.a+Ts*(self.kp*m.sin(self.a)-self.ka*self.a-self.kb*self.b)
-            self.b=self.b-Ts*(self.kp*m.sin(self.a))
-            print('alpha',self.a)
-            print('beta',self.b)
-        else:
-            self.p=self.p*(1+Ts*self.kp*m.cos(self.a))
-            print('p after',self.p)
-            self.a=self.a+Ts*(-self.kp*m.sin(self.a)+self.ka*self.a+self.kb*self.b)
-            self.b=self.b+Ts*(self.kp*m.sin(self.a))
-            print('alpha',self.a)
-            print('beta',self.b)
+    
+        self.p=self.p*(1-Ts*self.kp*m.cos(self.a))
+        #print('p after',self.p)
+        self.a=self.a+Ts*(self.kp*m.sin(self.a)-self.ka*self.a-self.kb*(self.b-self.bref))
+        self.b= self.b-Ts*(self.kp*m.sin(self.a))
+        #print('alpha',self.a)
+        #print('beta',self.b)
 
-        if self.a>m.pi:
-            self.a=self.a-2*m.pi
-        elif self.a<-m.pi:
-            self.a=self.a+2*m.pi
-        return self.p
+
+
 
     
     def compute_input(self,vTOm,wTOm):
-        if self.a>-m.pi/2 and self.a<m.pi/2:
-            self.u[0]=self.kp*self.p
-            self.u[1]=self.ka*self.a+self.kb*self.b
-        else:
-            self.u[0]=-self.kp*self.p
-            self.u[1]=self.ka*self.a+self.kb*self.b
-        print('u0',self.u[0])
-        print('u1',self.u[1])
+
+        self.u[0]=self.kp*self.p
+        self.u[1]=self.ka*self.a+self.kb*(self.b-self.bref)
+
+        #print('u0',self.u[0])
+        #print('u1',self.u[1])
         vM=self.u[0]*vTOm
         wM=self.u[1]*wTOm
 
         ML=vM+wM
         MR=vM-wM
-        print('ML',self.ML)
-        print('MR',self.MR)
+        #print('ML',self.ML)
+        #print('MR',self.MR)
         ML = ML if ML >= 0 else 2 ** 16 + ML
         ML = int(ML)
         MR = MR if MR >= 0 else 2 ** 16 + MR
@@ -128,7 +117,7 @@ class Robot:
         while True:
             self.compute_state_equation(Ts)
             self.compute_Pos()
-            print('POS',self.Pos)
+            #print('POS',self.Pos)
 
             self.check()
             self.compute_input(vTOm,wTOm)
@@ -137,6 +126,25 @@ class Robot:
             time.sleep(Ts)
 
             if self.p<1 and self.node==len(self.global_path)-2:
-                self.th.set_var("motor.left.target", 0)
-                self.th.set_var("motor.right.target", 0)
+                th.set_var("motor.left.target", 0)
+                th.set_var("motor.right.target", 0)
         return self.Pos[0]
+
+    
+global_path=[(0,0),(60,0),(60,31.5),(75,63),(90,94.5)] #points for the directio
+Ts=0.1 #sampling time
+
+Pos_xy=np.asarray(  global_path[0], dtype = None, order = None )
+PosInit=np.append(Pos_xy, 2.0)  #assume initial angle equal to 0
+
+th = Thymio.serial(port="\\.\COM3", refreshing_rate=0.1)
+time.sleep(3) # To make sure the Thymio has had time to connect
+R=4.7 #cm 
+vTOm=31.25
+wTOm=(200.0*180)/(80*m.pi)
+
+kp=0.15
+ka=0.4
+kb=-0.07
+
+Robot(global_path,PosInit,Ts,kp,ka,kb).thymio(th,vTOm,wTOm,Ts) #test if it works 
