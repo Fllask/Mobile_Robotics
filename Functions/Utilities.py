@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import math as m
 
 class Utilities:
     """Utilities for testing and displaying"""
@@ -107,3 +108,11 @@ class Utilities:
 
         #displaying the map
         plt.show()
+
+    def compute_angle(self,Pos1,Pos2):
+        angle_value=m.atan2(Pos2[1]-Pos1[1],Pos2[0]-Pos1[0])
+        return angle_value
+
+    def compute_distance(self,Pos1,Pos2):
+        dist=m.sqrt((Pos1[0]-Pos2[0])**2 + (Pos1[1]-Pos2[1])**2 )
+        return dist
