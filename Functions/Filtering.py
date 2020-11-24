@@ -59,8 +59,11 @@ class Filtering:
         V_measured = np.array([[vR_measured],[vL_measured]])
         #print('vmeasured\n',V_measured)
         print('V_measured',V_measured)
-        A = np.array([[1, 0, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.cos(theta)/(2*self.robot.vTOm)],[0, 1, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.sin(theta)/(2*self.robot.vTOm)],
-                     [0, 0, 1, 1/(2*4.7*self.robot.vTOm), 1/(2*4.7*self.robot.vTOm)],[0, 0, 0, 1./self.robot.vTOm, 0],[0, 0, 0, 0, 1./self.robot.vTOm]]) 
+        A = np.array([[1, 0, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.cos(theta)/(2*self.robot.vTOm)],
+                      [0, 1, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.sin(theta)/(2*self.robot.vTOm)],
+                      [0, 0, 1, 1/(2*4.7*self.robot.vTOm), 1/(2*4.7*self.robot.vTOm)],
+                      [0, 0, 0, 1./self.robot.vTOm, 0],
+                      [0, 0, 0, 0, 1./self.robot.vTOm]]) 
 
         
         #print(X_est)
@@ -91,32 +94,31 @@ class Filtering:
 
        self.Q[0][0] = sig*(m.cos(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
        self.Q[0][1] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
-       self.Q[0][2] = sig*(m.cos(theta)**2)*(Ts**3)/(3*4*(vTOm**2)) + sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*4*(vTOm**2))
+       self.Q[0][2] = 0
        self.Q[0][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
        self.Q[0][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
 
-       self.Q[1][0] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
+       self.Q[1][0] = self.Q[0][1] 
        self.Q[1][1] = sig*(m.sin(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
-       self.Q[1][2] = sig*(m.sin(theta)**2)*(Ts**3)/(3*2*(vTOm**2)) + sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*4*(vTOm**2))
-       self.Q[1][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
+       self.Q[1][2] = 0
+       self.Q[1][3] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm**2))
        self.Q[1][4] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm**2))
 
        self.Q[2][0] = self.Q[0][2]
        self.Q[2][1] = self.Q[1][2]
-       self.Q[2][2] = sig*(m.cos(theta)**2)*(Ts**3)/(3*4*(vTOm**2)) + sig*(m.sin(theta)**2)*(Ts**3)/(3*4*(vTOm**2))
-       self.Q[2][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
-       self.Q[2][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
+       self.Q[2][2] = sig*(Ts**2)/(2*2*(vTOm**2))
+       self.Q[2][3] = sig*Ts/(2*(vTOm**2))
+       self.Q[2][4] = - sig*Ts/(2*(vTOm**2))
 
        self.Q[3][0] = self.Q[0][3]
        self.Q[3][1] = self.Q[1][3]
        self.Q[3][2] = self.Q[2][3]
-       self.Q[3][3] = sig/(vTOm**2)
+       self.Q[3][3] = sig*Ts/(2*(vTOm**2))
        self.Q[3][4] = 0
 
        self.Q[4][0] = self.Q[0][4]
        self.Q[4][1] = self.Q[1][4]
        self.Q[4][2] = self.Q[2][4]
        self.Q[4][3] = self.Q[3][4]
-       self.Q[4][4] = sig/(vTOm**2)
-
+       self.Q[4][4] = sig*Ts/(2*(vTOm**2))
        return self.Q
