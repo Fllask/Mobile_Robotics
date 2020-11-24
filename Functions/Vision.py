@@ -144,11 +144,3 @@ def getcoord(imageBin, trans):
     
     
 
-<<<<<<< HEAD
-#tr = projection(test.corners)
-=======
-test = Vision()
-# tr = projection(test.corners)
->>>>>>> 472e383e0276dcb9a5836d9b416a4b08c165972d
-
-# print(tr.transform(np.array([[0.5,0.5]]).T))
