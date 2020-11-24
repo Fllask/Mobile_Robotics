@@ -27,21 +27,22 @@ class Filtering:
         self.Ts = Ts
     
     @staticmethod
-    def update(X_est_priori,P_est_priori, zk, H, A, R):
-        innovation = zk - np.dot(H,X_est_priori)
+    def update(X_est,P_est_priori, zk, H, A, R):
+
+        innovation = zk - np.dot(H,X_est)
         #print("S")
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
         #print(S)
         #print("K")
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
         #print(K)
-        X_est = X_est_priori + np.dot(K,innovation)
+        X_real = X_est + np.dot(K,innovation)
         #print(X_est)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
 
-        return X_est, P_est
+        return X_real, P_est
 
-    def kalman(self, Xcam, Xest_priori):
+    def kalman(self, Xcam, Xest):
         """Xcam is measured state with camera,
            X_est is predicted state from a priori state (by State Space), 
            A, B, are state space parameters, 
@@ -57,8 +58,6 @@ class Filtering:
                      [0, 0, 1, 1/(2*4.7), 1/(2*4.7)],[0, 0, 0, 1, 0],[0, 0, 0, 0, 1]]) 
 
         
-        #Prediction
-        X_est = np.dot(A, Xest_priori)
         #print(X_est)
         P_est = np.dot(A,np.dot(self.Pest_priori,A.T)) + self.Q
         #print(P_est)
