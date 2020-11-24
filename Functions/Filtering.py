@@ -10,60 +10,83 @@ import math as m
 from Thymio import Thymio
 from Timer import RepeatedTimer
 from Robot import Robot
-from tqdm import tqdm
+
 
 class Filtering:
 
-    def __init__(self, Rvel, Rcam, Q, robot, Hvel):
+    def __init__(self, Rvel, Rcam, robot, Hvel,Hcam, Ts):
         self.Rvel = Rvel
         self.Rcam = Rcam
-        self.Q = Q
-        self.Hcam = np.zeros((2,4))
-        self.Hcam[0][0] = 1
-        self.Hcam[1][1] = 1
-        self.Hvel = Hvel
-        self.Pest_priori = Q
         self.robot = robot
+        self.Q = np.zeros((5,5))
+        self.compute_Q(Ts,6.15) # Q to measure motor
+        self.compute_Qcam(0.1)  # Q for error in the camera x y position
+        self.Hcam=Hcam
+        self.Hvel = Hvel
+        self.Pest_priori = self.Q
+        
+        self.Ts = Ts
     
     @staticmethod
-    def update(X_est_priori,P_est_priori, zk, H, A, R):
-        innovation = zk - np.dot(H,X_est_priori)
+    def update(X_est,P_est_priori, zk, H, A, R):
+
+        innovation = zk - np.dot(H,X_est)
+        #print('zk',zk)
+        #print('X_est',X_est)
         #print("S")
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
-        #print(S)
+        
         #print("K")
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        #print(K)
-        X_est = X_est_priori + np.dot(K,innovation)
+        #print('K',K)
+        #print('innovation\n',innovation)
+
+        X_est = X_est + np.dot(K,innovation)
         #print(X_est)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
 
+        #print('P_est\n',P_est)
         return X_est, P_est
 
-    def kalmanRectiligne(self, Xcam, Xest_priori, measuredSpeed):
+    def kalman(self, Xcam, X_est,th):
         """Xcam is measured state with camera,
            X_est is predicted state from a priori state (by State Space), 
            A, B, are state space parameters, 
            V is the velocity"""
+
+        theta = self.robot.Pos[1]
+        vR_measured = th.get_var('motor.right.speed')
+        vL_measured = th.get_var('motor.left.speed')
+
+        if vR_measured>500 or vR_measured<-500:
+            vR_measured=0
+        if vL_measured>500 or vL_measured<-500:
+            vL_measured=0
         
-        A = self.robot.A
-        B = self.robot.B
+        V_measured = np.array([[vL_measured],[vR_measured]])
+        #print('vmeasured\n',V_measured)
+        #print('V_measured',V_measured)
+        A = np.array([[1, 0, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.cos(theta)/(2*self.robot.vTOm)],
+                      [0, 1, 0, self.Ts*m.sin(theta)/(2*self.robot.vTOm), self.Ts*m.sin(theta)/(2*self.robot.vTOm)],
+                      [0, 0, 1, self.Ts*1/(2*4.7*self.robot.vTOm), -1*self.Ts/(2*4.7*self.robot.vTOm)],
+                      [0, 0, 0, 1., 0],
+                      [0, 0, 0, 0, 1.]]) 
 
         
-        #Prediction
-        X_est = np.dot(A, Xest_priori)
         #print(X_est)
         P_est = np.dot(A,np.dot(self.Pest_priori,A.T)) + self.Q
-        #print(P_est)
+        #print('premiere partie\n',np.dot(A,np.dot(self.Pest_priori,A.T)) )
+        #print('Q',self.Q)
+        #print('P_est',P_est)
 
 
         #Update for velocity sensor
 
-        X_est, P_est = self.update(X_est, P_est, measuredSpeed, self.Hvel, A, self.Rvel)
+        X_est, P_est = self.update(X_est, P_est,V_measured, self.Hvel, A, self.Rvel)
 
         #Update for camera sensor
 
-        X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
+        #X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
 
 
         #return
@@ -71,8 +94,42 @@ class Filtering:
 
         return X_est
 
-    def filter(self,enable,camera_position,state_estimator,target = False):
-        """ input:      the position as computed by the vision algorithm (a 3d numpy vector)
-                        the position estimated by the state estimator (a 3d numpy vector), 
+    def compute_Q(self,Ts,sig):
 
-            returns:    an estimation of position a 3d numpy vector """
+       theta = self.robot.Pos[2]
+       vTOm = self.robot.vTOm
+
+       self.Q[0][0] = sig*(m.cos(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
+       self.Q[0][1] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
+       self.Q[0][2] = 0
+       self.Q[0][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm))
+       self.Q[0][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm))
+
+       self.Q[1][0] = self.Q[0][1] 
+       self.Q[1][1] = sig*(m.sin(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
+       self.Q[1][2] = 0
+       self.Q[1][3] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm))
+       self.Q[1][4] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm))
+
+       self.Q[2][0] = self.Q[0][2]
+       self.Q[2][1] = self.Q[1][2]
+       self.Q[2][2] = sig*(Ts**3)/(3*2*4.7**2*(vTOm**2))
+       self.Q[2][3] = sig*Ts**2/(2*2*4.7*(vTOm))
+       self.Q[2][4] = - sig*Ts**2/(2*2*4.7*(vTOm))
+
+       self.Q[3][0] = self.Q[0][3]
+       self.Q[3][1] = self.Q[1][3]
+       self.Q[3][2] = self.Q[2][3]
+       self.Q[3][3] = sig*Ts
+       self.Q[3][4] = 0
+
+       self.Q[4][0] = self.Q[0][4]
+       self.Q[4][1] = self.Q[1][4]
+       self.Q[4][2] = self.Q[2][4]
+       self.Q[4][3] = self.Q[3][4]
+       self.Q[4][4] = sig*Ts
+       return self.Q
+
+    def compute_Qcam(self,sig):
+        self.Qcam=([[sig,0.,0.,0.,0.],[0.,sig,0.,0.,0.],[0.,0.,0.,0.,0.],[0.,0.,0.,0.,0.]])
+        return self.Qcam
