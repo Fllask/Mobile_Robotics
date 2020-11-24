@@ -14,17 +14,16 @@ from Robot import Robot
 
 class Filtering:
 
-    def __init__(self, Rvel, Rcam, Q, robot, Hvel, Ts):
+    def __init__(self, Rvel, Rcam, robot, Hvel,Hcam, Ts):
         self.Rvel = Rvel
         self.Rcam = Rcam
         self.robot = robot
         self.Q = np.zeros((5,5))
-        self.compute_Q(Ts,6.15)
-        self.Hcam = np.zeros((2,4))
-        self.Hcam[0][0] = 1
-        self.Hcam[1][1] = 1
+        self.compute_Q(Ts,6.15) # Q to measure motor
+        self.compute_Qcam(0.1)  # Q for error in the camera x y position
+        self.Hcam=Hcam
         self.Hvel = Hvel
-        self.Pest_priori = Q
+        self.Pest_priori = self.Q
         
         self.Ts = Ts
     
@@ -32,13 +31,15 @@ class Filtering:
     def update(X_est,P_est_priori, zk, H, A, R):
 
         innovation = zk - np.dot(H,X_est)
+        #print('zk',zk)
+        #print('X_est',X_est)
         #print("S")
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
         
-        print("K")
+        #print("K")
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        print('K',K)
-        print('innovation\n',innovation)
+        #print('K',K)
+        #print('innovation\n',innovation)
 
         X_est = X_est + np.dot(K,innovation)
         #print(X_est)
@@ -57,21 +58,26 @@ class Filtering:
         vR_measured = th.get_var('motor.right.speed')
         vL_measured = th.get_var('motor.left.speed')
 
-        V_measured = np.array([[vR_measured],[vL_measured]])
+        if vR_measured>500 or vR_measured<-500:
+            vR_measured=0
+        if vL_measured>500 or vL_measured<-500:
+            vL_measured=0
+        
+        V_measured = np.array([[vL_measured],[vR_measured]])
         #print('vmeasured\n',V_measured)
-        print('V_measured',V_measured)
+        #print('V_measured',V_measured)
         A = np.array([[1, 0, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.cos(theta)/(2*self.robot.vTOm)],
-                      [0, 1, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.sin(theta)/(2*self.robot.vTOm)],
-                      [0, 0, 1, 1/(2*4.7*self.robot.vTOm), 1/(2*4.7*self.robot.vTOm)],
-                      [0, 0, 0, 1./self.robot.vTOm, 0],
-                      [0, 0, 0, 0, 1./self.robot.vTOm]]) 
+                      [0, 1, 0, self.Ts*m.sin(theta)/(2*self.robot.vTOm), self.Ts*m.sin(theta)/(2*self.robot.vTOm)],
+                      [0, 0, 1, self.Ts*1/(2*4.7*self.robot.vTOm), -1*self.Ts/(2*4.7*self.robot.vTOm)],
+                      [0, 0, 0, 1., 0],
+                      [0, 0, 0, 0, 1.]]) 
 
         
         #print(X_est)
         P_est = np.dot(A,np.dot(self.Pest_priori,A.T)) + self.Q
-        print('premiere partie\n',np.dot(A,np.dot(self.Pest_priori,A.T)) )
-        print('Q',self.Q)
-        print('P_est',P_est)
+        #print('premiere partie\n',np.dot(A,np.dot(self.Pest_priori,A.T)) )
+        #print('Q',self.Q)
+        #print('P_est',P_est)
 
 
         #Update for velocity sensor
@@ -96,20 +102,20 @@ class Filtering:
        self.Q[0][0] = sig*(m.cos(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
        self.Q[0][1] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
        self.Q[0][2] = 0
-       self.Q[0][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
-       self.Q[0][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
+       self.Q[0][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm))
+       self.Q[0][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm))
 
        self.Q[1][0] = self.Q[0][1] 
        self.Q[1][1] = sig*(m.sin(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
        self.Q[1][2] = 0
-       self.Q[1][3] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm**2))
-       self.Q[1][4] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm**2))
+       self.Q[1][3] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm))
+       self.Q[1][4] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm))
 
        self.Q[2][0] = self.Q[0][2]
        self.Q[2][1] = self.Q[1][2]
-       self.Q[2][2] = sig*(Ts**2)/(2*2*(vTOm**2))
-       self.Q[2][3] = sig*Ts/(2*(vTOm**2))
-       self.Q[2][4] = - sig*Ts/(2*(vTOm**2))
+       self.Q[2][2] = sig*(Ts**3)/(3*2*4.7**2*(vTOm**2))
+       self.Q[2][3] = sig*Ts**2/(2*2*4.7*(vTOm))
+       self.Q[2][4] = - sig*Ts**2/(2*2*4.7*(vTOm))
 
        self.Q[3][0] = self.Q[0][3]
        self.Q[3][1] = self.Q[1][3]
@@ -123,3 +129,7 @@ class Filtering:
        self.Q[4][3] = self.Q[3][4]
        self.Q[4][4] = sig*Ts
        return self.Q
+
+    def compute_Qcam(self,sig):
+        self.Qcam=([[sig,0.,0.,0.,0.],[0.,sig,0.,0.,0.],[0.,0.,0.,0.,0.],[0.,0.,0.,0.,0.]])
+        return self.Qcam
