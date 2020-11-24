@@ -10,7 +10,7 @@ import math as m
 from Thymio import Thymio
 from Timer import RepeatedTimer
 from Robot import Robot
-from tqdm import tqdm
+
 
 class Filtering:
 
@@ -32,35 +32,41 @@ class Filtering:
         innovation = zk - np.dot(H,X_est)
         #print("S")
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
-        #print(S)
-        #print("K")
+        
+        print("K")
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        #print(K)
-        X_real = X_est + np.dot(K,innovation)
+        print('K',K)
+        print('innovation\n',innovation)
+
+        X_est = X_est_priori + np.dot(K,innovation)
         #print(X_est)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
 
-        return X_real, P_est
+        #print('P_est\n',P_est)
+        return X_est, P_est
 
-    def kalman(self, Xcam, Xest):
+    def kalman(self, Xcam, X_est,th):
         """Xcam is measured state with camera,
            X_est is predicted state from a priori state (by State Space), 
            A, B, are state space parameters, 
            V is the velocity"""
 
-        theta = robot.Pos[1]
-        vR_measured = self.robot.th.get_var('motor.right.speed')
-        VL_measured = self.robot.th.get_var('motor.left.speed')
+        theta = self.robot.Pos[1]
+        vR_measured = th.get_var('motor.right.speed')
+        vL_measured = th.get_var('motor.left.speed')
 
         V_measured = np.array([[vR_measured],[vL_measured]])
-        
-        A = np.array([[1, 0, 0, self.Ts*m.cos(theta)/2, self.Ts*m.cos(theta)/2],[0, 1, 0, self.Ts*m.cos(theta)/2, self.Ts*m.sin(theta)/2],
-                     [0, 0, 1, 1/(2*4.7), 1/(2*4.7)],[0, 0, 0, 1, 0],[0, 0, 0, 0, 1]]) 
+        #print('vmeasured\n',V_measured)
+        print('V_measured',V_measured)
+        A = np.array([[1, 0, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.cos(theta)/(2*self.robot.vTOm)],[0, 1, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.sin(theta)/(2*self.robot.vTOm)],
+                     [0, 0, 1, 1/(2*4.7*self.robot.vTOm), 1/(2*4.7*self.robot.vTOm)],[0, 0, 0, 1./self.robot.vTOm, 0],[0, 0, 0, 0, 1./self.robot.vTOm]]) 
 
         
         #print(X_est)
         P_est = np.dot(A,np.dot(self.Pest_priori,A.T)) + self.Q
-        #print(P_est)
+        print('premiere partie\n',np.dot(A,np.dot(self.Pest_priori,A.T)) )
+        print('Q',self.Q)
+        print('P_est',P_est)
 
 
         #Update for velocity sensor
@@ -69,7 +75,7 @@ class Filtering:
 
         #Update for camera sensor
 
-        X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
+        #X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
 
 
         #return

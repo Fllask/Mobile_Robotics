@@ -15,18 +15,19 @@ class Robot:
     """ Handles the control of the robot """
     
     #init
-    def __init__(self,global_path,InitPos,Ts,kp,ka,kb):
+    def __init__(self,global_path,InitPos,Ts,kp,ka,kb,vTOm,wTOm):
         self.ka=ka
         self.kb=kb
         self.kp=kp
         self.global_path=global_path
         self.Pos=InitPos   # x,y and theta
         self.node=0
-        #self.th = Thymio.serial(port="\\.\COM3", refreshing_rate=0.1)
+       
         self.a=None
         self.b=None
         self.p=None
-
+        self.vTOm=vTOm
+        self.wTOm=wTOm
         self.compute_pba()
         
         self.u=np.array([0.0,0.0])          # [v;w] speed and angular velocity
@@ -66,15 +67,15 @@ class Robot:
 
 
     
-    def compute_input(self,vTOm,wTOm):
+    def compute_input(self):
 
         self.u[0]=self.kp*self.p
         self.u[1]=self.ka*self.a+self.kb*(self.b-self.bref)
 
         #print('u0',self.u[0])
         #print('u1',self.u[1])
-        vM=self.u[0]*vTOm
-        wM=self.u[1]*wTOm
+        vM=self.u[0]*self.vTOm
+        wM=self.u[1]*self.wTOm
 
         ML=vM+wM
         MR=vM-wM
@@ -90,9 +91,9 @@ class Robot:
 
         return self.ML
 
-    def run_on_thymio(self):
-        self.th.set_var("motor.left.target", self.ML)
-        self.th.set_var("motor.right.target", self.MR)
+    def run_on_thymio(self,th):
+        th.set_var("motor.left.target", self.ML)
+        th.set_var("motor.right.target", self.MR)
         return self.ML
 
     def compute_Pos(self):
@@ -113,15 +114,15 @@ class Robot:
 
 
 
-    def thymio(self,vTOm,wTOm,Ts):
+    def thymio(self,Ts,th):
         while True:
             self.compute_state_equation(Ts)
             self.compute_Pos()
             #print('POS',self.Pos)
 
             self.check()
-            self.compute_input(vTOm,wTOm)
-            self.run_on_thymio()
+            self.compute_input()
+            self.run_on_thymio(th)
 
             time.sleep(Ts)
 
