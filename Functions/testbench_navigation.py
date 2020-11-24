@@ -65,6 +65,7 @@ while go:
     time.sleep(Ts)
 
     X_filter=filter.kalman(0.0,vect,th)
+    filter.compute_Q(Ts, 6.15)
     #print('Pos_no_filter\n',thym.Pos)
     thym.Pos=X_filter[0:3]
     print('Pos_filter\n',thym.Pos)

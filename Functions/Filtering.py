@@ -17,14 +17,15 @@ class Filtering:
     def __init__(self, Rvel, Rcam, Q, robot, Hvel, Ts):
         self.Rvel = Rvel
         self.Rcam = Rcam
-        self.Q = np.zeros(5)
-        self.coompute_Q(Ts,6.15)
+        self.robot = robot
+        self.Q = np.zeros((5,5))
+        self.compute_Q(Ts,6.15)
         self.Hcam = np.zeros((2,4))
         self.Hcam[0][0] = 1
         self.Hcam[1][1] = 1
         self.Hvel = Hvel
         self.Pest_priori = Q
-        self.robot = robot
+        
         self.Ts = Ts
     
     @staticmethod
@@ -39,7 +40,7 @@ class Filtering:
         print('K',K)
         print('innovation\n',innovation)
 
-        X_est = X_est_priori + np.dot(K,innovation)
+        X_est = X_est + np.dot(K,innovation)
         #print(X_est)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
 
