@@ -3,7 +3,7 @@ import cv2 #read video and images
 import numpy as np
 from skimage import measure, morphology
 from scipy import linalg
-
+import math
 
 def getTransform(image):
     #return a geometric transform (usable with cv2.warpPerspective or with )
@@ -63,27 +63,30 @@ class colorfilter:
             self.band = np.array([[37,65],[11,38],[1,28]])
         if color == "GREEN":
              self.band = np.array([[11,41],[58,94],[46,77]])
+        if color == "ROBOT":
+            self.band = np.array([[0.547,0.631],[0.145,0.281],[0.906,1]])
         if color == "BLACK":
              self.band = np.array([[0,39],[0,50],[0,50]])
              self.morph = True
     def get_mask(self,image):
-        mask = np.zeros((image.shape[0], image.shape[1]))
-        for x in range(image.shape[0]):
-            for y in range(image.shape[1]):
-                pix = image[x][y]
-                #print((pix<self.band[:,1]).all())
-                if (pix>self.band[:,0]).all() & (pix<self.band[:,1]).all():
-                    mask[x,y] = 1
-                    #print("CAL")
+        mask = cv2.inRange(image,self.band[:,0],self.band[:,1])
+        
         if self.morph:
-
             morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
             morphology.binary_closing(mask,selem = morphology.square(3), out = mask)
         else:
             morphology.binary_opening(mask, out=mask)
             morphology.binary_closing(mask,out=mask)
         return mask
-    
+
+def preprocess(img):
+    imgsmall = cv2.resize(img,(624,416))
+    imgsmooth = np.copy(imgsmall)
+    cv2.GaussianBlur(imgsmall,(5,5),0,dst = imgsmooth)
+    imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV)
+    imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
+    imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
+    return imgHSV
     
 def projection(corners):
     #corners: coordinates of TL TR BL BR in the image []
@@ -137,6 +140,42 @@ def getCentroid(imageBin):
     centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
     return centroid
 
+
+def getRobotPos(imageBin):
+    moments = measure.moments(imageBin, order = 3)
+    centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
+    varx = moments[0,2]/moments[0,0]-centroid[0]**2
+    vary = moments[2,0]/moments[0,0]-centroid[1]**2
+    varxy = moments[1,1]/moments[0,0]-centroid[0]*centroid[1]
+    
+    #get the angle
+    phi = math.atan(2*varxy/(varx-vary))/2 +(varx<vary)*math.pi/2
+    
+    #check direction
+    cm3x = moments[0,3] \
+           -3*moments[0,2]*moments[0,1]/moments[0,0]\
+           +2*moments[0,1]**3/moments[0,0]**2
+   
+    cm3y = moments[3,0] \
+       -3*moments[2,0]*moments[1,0]/moments[0,0]\
+       +2*moments[1,0]**3/moments[0,0]**2
+
+    print(cm3x)
+    print(cm3y)
+    
+    if abs(cm3x) >abs(cm3y):
+        print("hor")
+        if cm3x < 0:
+            phi+= math.pi
+    else:
+        print("vert")
+        if cm3y < 0:
+            phi+= math.pi
+    pos = np.append(centroid,phi)
+    return pos
+    
+    
+    
 def getcoord(imageBin, trans):
     #get the real coordinates of a the robot
     pose = np.zeros(3)

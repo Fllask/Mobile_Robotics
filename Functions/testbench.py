@@ -25,11 +25,17 @@ def get_first_frame(input):
     #get first frame for object recognition
     video.set(1, 0)
     ret, frame = video.read()
-    return frame
+    img = v.preprocess(frame)
+    
+    return 
+
 def get_image(input):
     frame = cv2.imread(input)
-    small_frame = cv2.resize(frame,(624,416))
-    return np.array(small_frame)
+    img = v.preprocess(frame)
+    if DISPLAY_GRAPH:
+        cv2.imshow("preprocessed frame",img)
+        cv2.waitKey(0)
+    return np.array(img)
 
 
 
@@ -42,6 +48,7 @@ if RECOMPUTE_PROJ:
     filb = v.colorfilter("BLUE")
     fily = v.colorfilter("YELLOW")
     maskr= filr.get_mask(frame)
+    r = v.getRobotPos(maskr)
     BL = v.getCentroid(maskr)
     maskg= filg.get_mask(frame)
     TL = v.getCentroid(maskg)
@@ -49,6 +56,7 @@ if RECOMPUTE_PROJ:
     BR = v.getCentroid(maskb)
     masky= fily.get_mask(frame)
     TR = v.getCentroid(masky)
+    
     
     
     corners = np.array([TL,TR,BL,BR], np.float32)
