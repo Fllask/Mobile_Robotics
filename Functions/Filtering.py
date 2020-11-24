@@ -114,12 +114,12 @@ class Filtering:
        self.Q[3][0] = self.Q[0][3]
        self.Q[3][1] = self.Q[1][3]
        self.Q[3][2] = self.Q[2][3]
-       self.Q[3][3] = sig*Ts/(2*(vTOm**2))
+       self.Q[3][3] = sig*Ts
        self.Q[3][4] = 0
 
        self.Q[4][0] = self.Q[0][4]
        self.Q[4][1] = self.Q[1][4]
        self.Q[4][2] = self.Q[2][4]
        self.Q[4][3] = self.Q[3][4]
-       self.Q[4][4] = sig*Ts/(2*(vTOm**2))
+       self.Q[4][4] = sig*Ts
        return self.Q
