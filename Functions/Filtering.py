@@ -17,14 +17,15 @@ class Filtering:
     def __init__(self, Rvel, Rcam, Q, robot, Hvel, Ts):
         self.Rvel = Rvel
         self.Rcam = Rcam
-        self.Q = np.zeros(5)
-        self.coompute_Q(Ts,6.15)
+        self.robot = robot
+        self.Q = np.zeros((5,5))
+        self.compute_Q(Ts,6.15)
         self.Hcam = np.zeros((2,4))
         self.Hcam[0][0] = 1
         self.Hcam[1][1] = 1
         self.Hvel = Hvel
         self.Pest_priori = Q
-        self.robot = robot
+        
         self.Ts = Ts
     
     @staticmethod
@@ -39,7 +40,7 @@ class Filtering:
         print('K',K)
         print('innovation\n',innovation)
 
-        X_est = X_est_priori + np.dot(K,innovation)
+        X_est = X_est + np.dot(K,innovation)
         #print(X_est)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
 
@@ -90,33 +91,33 @@ class Filtering:
        vTOm = self.robot.vTOm
 
        self.Q[0][0] = sig*(m.cos(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
-       self.Q[0][1] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
-       self.Q[0][2] = sig*(m.cos(theta)**2)*(Ts**3)/(3*4*(vTOm**2)) + sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*4*(vTOm**2))
-       self.Q[0][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
-       self.Q[0][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
+       #self.Q[0][1] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
+       #self.Q[0][2] = sig*(m.cos(theta)**2)*(Ts**3)/(3*4*(vTOm**2)) + sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*4*(vTOm**2))
+       #self.Q[0][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
+       #self.Q[0][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
 
-       self.Q[1][0] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
+       #self.Q[1][0] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
        self.Q[1][1] = sig*(m.sin(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
-       self.Q[1][2] = sig*(m.sin(theta)**2)*(Ts**3)/(3*2*(vTOm**2)) + sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*4*(vTOm**2))
-       self.Q[1][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
-       self.Q[1][4] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm**2))
+       #self.Q[1][2] = sig*(m.sin(theta)**2)*(Ts**3)/(3*2*(vTOm**2)) + sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*4*(vTOm**2))
+       #self.Q[1][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
+       #self.Q[1][4] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm**2))
 
-       self.Q[2][0] = self.Q[0][2]
-       self.Q[2][1] = self.Q[1][2]
+       #self.Q[2][0] = self.Q[0][2]
+       #self.Q[2][1] = self.Q[1][2]
        self.Q[2][2] = sig*(m.cos(theta)**2)*(Ts**3)/(3*4*(vTOm**2)) + sig*(m.sin(theta)**2)*(Ts**3)/(3*4*(vTOm**2))
-       self.Q[2][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
-       self.Q[2][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
+       #self.Q[2][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
+       #self.Q[2][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm**2))
 
-       self.Q[3][0] = self.Q[0][3]
-       self.Q[3][1] = self.Q[1][3]
-       self.Q[3][2] = self.Q[2][3]
+       #self.Q[3][0] = self.Q[0][3]
+       #self.Q[3][1] = self.Q[1][3]
+       #self.Q[3][2] = self.Q[2][3]
        self.Q[3][3] = sig/(vTOm**2)
-       self.Q[3][4] = 0
+       #self.Q[3][4] = 0
 
-       self.Q[4][0] = self.Q[0][4]
-       self.Q[4][1] = self.Q[1][4]
-       self.Q[4][2] = self.Q[2][4]
-       self.Q[4][3] = self.Q[3][4]
+       #self.Q[4][0] = self.Q[0][4]
+       #self.Q[4][1] = self.Q[1][4]
+       #self.Q[4][2] = self.Q[2][4]
+       #self.Q[4][3] = self.Q[3][4]
        self.Q[4][4] = sig/(vTOm**2)
 
        return self.Q
