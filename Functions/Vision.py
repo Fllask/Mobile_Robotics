@@ -62,21 +62,24 @@ class colorfilter:
         if color == "BLUE":
             self.band = np.array([[37,65],[11,38],[1,28]])
         if color == "GREEN":
-             self.band = np.array([[11,41],[58,94],[46,77]])
+            #filter in HSV
+             self.band = np.array([[30,78],[135,255],[76,217]])
         if color == "ROBOT":
             self.band = np.array([[0.547,0.631],[0.145,0.281],[0.906,1]])
         if color == "BLACK":
              self.band = np.array([[0,39],[0,50],[0,50]])
              self.morph = True
     def get_mask(self,image):
-        mask = cv2.inRange(image,self.band[:,0],self.band[:,1])
-        
+        mask = cv2.inRange(image,self.band[:,0],self.band[:,1])/255
+        cv2.imshow('mask without morph',mask)
+        cv2.waitKey(0)
         if self.morph:
             morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
             morphology.binary_closing(mask,selem = morphology.square(3), out = mask)
         else:
-            morphology.binary_opening(mask, out=mask)
-            morphology.binary_closing(mask,out=mask)
+            morphology.binary_opening(mask, selem = morphology.disk(5),out=mask)
+            morphology.binary_closing(mask,out=mask,selem = morphology.disk(3))
+
         return mask
 
 def preprocess(img):
@@ -136,8 +139,12 @@ def get_image(input):
 
 
 def getCentroid(imageBin):
-    moments = measure.moments(imageBin, order = 1)
+    moments = measure.moments(imageBin, order = 2)
     centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
+    varx = moments[0,2]/moments[0,0]-centroid[0]**2
+    vary = moments[2,0]/moments[0,0]-centroid[1]**2
+    if (np.isnan(varx)) or (max(varx,vary)>math.sqrt(imageBin.size)):
+        print("invalide centroid")
     return centroid
 
 
@@ -173,13 +180,6 @@ def getRobotPos(imageBin):
             phi+= math.pi
     pos = np.append(centroid,phi)
     return pos
-    
-    
-    
-def getcoord(imageBin, trans):
-    #get the real coordinates of a the robot
-    pose = np.zeros(3)
-    pose[0:1] = trans.transform(getCentroid(imageBin))
     
     
 

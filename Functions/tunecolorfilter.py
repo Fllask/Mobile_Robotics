@@ -10,14 +10,31 @@ import cv2
 import math
 import numpy as np
 
-input_path = 'c:\\users\\valla\\documents\\github\\mobile_robotics\\sample_pictures\\'\
-             'test_set_2\\19.jpg'
-img = v.get_image(input_path)
-img = v.preprocess(img)
 
-img = cv2.cvtColor(img,cv2.COLOR_HSV2BGR)
-cv2.namedWindow('filtered',cv2.WINDOW_NORMAL)
-cv2.resizeWindow('filtered', 624,416)
-cv2.imshow('filtered', img)
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+
+
+for i in range(22):
+    
+    print(i)
+    if i < 10:
+        path = 'c:\\users\\valla\\documents\\github\\mobile_robotics'\
+            '\\sample_pictures\\test_set_2\\0'+str(i)+'.jpg'
+    else:
+        path = 'c:\\users\\valla\\documents\\github\\mobile_robotics'\
+            '\\sample_pictures\\test_set_2\\'+str(i)+'.jpg'
+    img = v.get_image(path)
+    
+    img = v.preprocess(img)
+    imgbgr = cv2.cvtColor(img,cv2.COLOR_HSV2BGR)
+    filterg = v.colorfilter("GREEN")
+    mask = filterg.get_mask(img)
+    cv2.imshow('mask',mask)
+    cv2.waitKey(0)
+    GC = v.getCentroid(mask)
+    '''cv2.namedWindow('filtered',cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('filtered', 624,416)
+    if ~np.isnan(GC[0]):
+        cv2.circle(imgbgr, (int(GC[0]),int(GC[1])), 15, (0,255,0), thickness=3, lineType=8, shift=0)
+    cv2.imshow('filtered', imgbgr)
+    cv2.waitKey(0)'''
+    cv2.destroyAllWindows()
