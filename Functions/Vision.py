@@ -7,30 +7,43 @@ import math
 
 def getTransform(image):
     #return a geometric transform (usable with cv2.warpPerspective or with )
+    invalid = False
     filr = colorfilter("RED")
     filg = colorfilter("GREEN")
     filb = colorfilter("BLUE")
     fily = colorfilter("YELLOW")
     maskr= filr.get_mask(image)
-    BL = getCentroid(maskr)
+    BL,fr = getCentroid(maskr)
+    if fr:
+        invalid = True
     maskg= filg.get_mask(image)
-    TL = getCentroid(maskg)
+    TL,fg = getCentroid(maskg)
+    if fg:
+        invalid = True
     maskb= filb.get_mask(image)
-    BR = getCentroid(maskb)
+    BR,fb = getCentroid(maskb)
+    if fb:
+        invalid = True
     masky= fily.get_mask(image)
-    TR = getCentroid(masky)
-    corners = np.array([TL,TR,BL,BR], np.float32)
+    TR,fy = getCentroid(masky)
+    if fy:
+        invalid = True
+    if invalid:
+        corners = np.array([[0,0],[624,0],[0,416],[624,416]], np.float32)
+    else:
+        corners = np.array([TL,TR,BL,BR], np.float32)
     trans = projection(corners)
-    return trans
+    return trans,invalid
 
 class Vision:
     """ Handles vision """
     i = 12345
 
     def __init__(self,image):
-        self.trans = getTransform(image)
+        self.trans, invalid = getTransform(image)
         self.map = createMap(image,self.trans)
-        
+        if invalid:
+            print("initialisation failed")
 
     def getMap(self, downscale = True):
         #return a map of polygons (numpy array of size (n.polygons, n.corners,1,2))
@@ -55,29 +68,33 @@ class Vision:
 class colorfilter:
     def __init__(self, color):
         self.morph = False
+        self.color = color
         if color == "RED":
-            self.band = np.array([[6,29],[8,35],[72,97]])
+            self.band = np.array([[0,11],[142,255],[30,255]])
         if color == "YELLOW":
-            self.band = np.array([[0,39],[124,166],[139,181]])
+            self.band = np.array([[25,33],[92,255],[92,255]])
         if color == "BLUE":
-            self.band = np.array([[37,65],[11,38],[1,28]])
+            self.band = np.array([[110,130],[161,255],[41,220]])
         if color == "GREEN":
             #filter in HSV
-             self.band = np.array([[30,78],[135,255],[76,217]])
+             self.band = np.array([[34,78],[135,255],[76,217]])
         if color == "ROBOT":
             self.band = np.array([[0.547,0.631],[0.145,0.281],[0.906,1]])
         if color == "BLACK":
-             self.band = np.array([[0,39],[0,50],[0,50]])
+             self.band = np.array([[0,179],[0,255],[0,25]])
              self.morph = True
     def get_mask(self,image):
         mask = cv2.inRange(image,self.band[:,0],self.band[:,1])/255
-        cv2.imshow('mask without morph',mask)
-        cv2.waitKey(0)
+        
+        #c'est sale, mais comme ça ça passe le wrapping
+        if self.color == "RED":
+            mask += cv2.inRange(image,np.array([173,142,30]),np.array([179,255,255]))
+            cv2.threshold(mask,0.5,1,0,dst = mask)
         if self.morph:
             morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
-            morphology.binary_closing(mask,selem = morphology.square(3), out = mask)
+            morphology.binary_closing(mask,selem = morphology.square(7), out = mask)
         else:
-            morphology.binary_opening(mask, selem = morphology.disk(5),out=mask)
+            morphology.binary_opening(mask, selem = morphology.disk(4),out=mask)
             morphology.binary_closing(mask,out=mask,selem = morphology.disk(3))
 
         return mask
@@ -139,13 +156,15 @@ def get_image(input):
 
 
 def getCentroid(imageBin):
+    redflag = 0
     moments = measure.moments(imageBin, order = 2)
     centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
     varx = moments[0,2]/moments[0,0]-centroid[0]**2
     vary = moments[2,0]/moments[0,0]-centroid[1]**2
     if (np.isnan(varx)) or (max(varx,vary)>math.sqrt(imageBin.size)):
         print("invalide centroid")
-    return centroid
+        redflag = True
+    return centroid,redflag
 
 
 def getRobotPos(imageBin):

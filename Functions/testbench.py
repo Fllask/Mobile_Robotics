@@ -12,34 +12,22 @@ from skimage import morphology
 import Vision as v
 from scipy import linalg
 
-input_path = "2.jpg"
-output_path = "output.avi"
+input_path = 'c:\\users\\valla\\documents\\github\\mobile_robotics'\
+            '\\sample_pictures\\test_set_2\\08.jpg'
 DISPLAY_GRAPH = True
 RECOMPUTE_PROJ = True
 
-def get_first_frame(input):
-    video = cv2.VideoCapture(input)
-    if(video.isOpened() == False):
-        print("Error opening video")
-
-    #get first frame for object recognition
-    video.set(1, 0)
-    ret, frame = video.read()
-    img = v.preprocess(frame)
-    
-    return 
 
 def get_image(input):
     frame = cv2.imread(input)
+    
     img = v.preprocess(frame)
-    if DISPLAY_GRAPH:
-        cv2.imshow("preprocessed frame",img)
-        cv2.waitKey(0)
+
     return np.array(img)
 
 
 
-frame =get_image(input_path)
+frame =  get_image(input_path)
 filpoly = v.colorfilter("BLACK")
 maskpoly = filpoly.get_mask(frame)
 if RECOMPUTE_PROJ:
@@ -48,17 +36,16 @@ if RECOMPUTE_PROJ:
     filb = v.colorfilter("BLUE")
     fily = v.colorfilter("YELLOW")
     maskr= filr.get_mask(frame)
-    r = v.getRobotPos(maskr)
-    BL = v.getCentroid(maskr)
+    r = v.getCentroid(maskr)
+    BL,f = v.getCentroid(maskr)
     maskg= filg.get_mask(frame)
-    TL = v.getCentroid(maskg)
+    TL,f = v.getCentroid(maskg)
     maskb= filb.get_mask(frame)
-    BR = v.getCentroid(maskb)
+    BR,f = v.getCentroid(maskb)
     masky= fily.get_mask(frame)
-    TR = v.getCentroid(masky)
+    TR,f = v.getCentroid(masky)
     
-    
-    
+
     corners = np.array([TL,TR,BL,BR], np.float32)
     trans = v.projection(corners)
 else:
@@ -80,6 +67,7 @@ for p in polycont:
 #print(polypoly)
 
 if DISPLAY_GRAPH:
+    frame = cv2.cvtColor(frame,cv2.COLOR_HSV2BGR)
     frameproj = cv2.warpPerspective(frame, trans, (1000,1000))
     
     cv2.drawContours(frameproj, polynomes, -1, (0,255,0), 3)

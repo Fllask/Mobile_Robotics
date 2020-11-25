@@ -12,10 +12,11 @@ import numpy as np
 DISPLAY = True
 
 
-input_path = "2.jpg"
+input_path = 'c:\\users\\valla\\documents\\github\\mobile_robotics'\
+            '\\sample_pictures\\test_set_2\\08.jpg'
 img = v.get_image(input_path)
-
-vis = v.Vision(img)
+imgprep = v.preprocess(img)
+vis = v.Vision(imgprep)
 rob = np.array([500,500,math.pi/2])
 if DISPLAY:
     img_real = cv2.warpPerspective(img, vis.trans, (1000,1000))

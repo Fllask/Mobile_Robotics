@@ -26,11 +26,11 @@ for i in range(22):
     
     img = v.preprocess(img)
     imgbgr = cv2.cvtColor(img,cv2.COLOR_HSV2BGR)
-    filterg = v.colorfilter("GREEN")
+    filterg = v.colorfilter("BLACK")
     mask = filterg.get_mask(img)
     cv2.imshow('mask',mask)
     cv2.waitKey(0)
-    GC = v.getCentroid(mask)
+    #GC = v.getCentroid(mask)
     '''cv2.namedWindow('filtered',cv2.WINDOW_NORMAL)
     cv2.resizeWindow('filtered', 624,416)
     if ~np.isnan(GC[0]):
