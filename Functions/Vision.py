@@ -7,6 +7,7 @@ import math
 
 def getTransform(image):
     #return a geometric transform (usable with cv2.warpPerspective or with )
+    image = preprocess(image)
     invalid = False
     filr = colorfilter("RED")
     filg = colorfilter("GREEN")
@@ -40,8 +41,10 @@ class Vision:
     i = 12345
 
     def __init__(self,image):
+        
         self.trans, invalid = getTransform(image)
-        self.map = createMap(image,self.trans)
+        self.setframe(image)    #generate self.frame
+        self.map = createMap(self.frame,self.trans)
         if invalid:
             print("initialisation failed")
 
@@ -53,16 +56,22 @@ class Vision:
         else:
             return self.map
 
-
+    def setframe(self, imgraw):
+        img_prep = preprocess(imgraw)
+        img_real = cv2.warpPerspective(img_prep, self.trans, (1000,1000))
+        self.frame = img_real
+        
     def returnDynamicCoordinates(self):
         """ returns an object containing the coordinates of the robot (a 3d numpy vector) 
         as well as the end point coordinates (a 2d numpy vector) 
         OR False if the image is not exploitable"""
-        coord = Features()
-        if coord.isUsable():
-            return coord
-        else:
-            return False
+        '''
+    
+        '''
+        filterob = colorfilter("ROBOT")
+        mask = filterob.get_mask(self.frame).get().astype(np.uint8)
+        pos,flag = getRobotPos(mask)
+        return pos
 
     
 class colorfilter:
@@ -79,7 +88,7 @@ class colorfilter:
             #filter in HSV
              self.band = np.array([[34,78],[135,255],[76,217]])
         if color == "ROBOT":
-            self.band = np.array([[0.547,0.631],[0.145,0.281],[0.906,1]])
+            self.band = np.array([[85,109],[107,255],[71,255]])
         if color == "BLACK":
              self.band = np.array([[0,179],[0,255],[0,25]])
              self.morph = True
@@ -89,9 +98,11 @@ class colorfilter:
         #c'est sale, mais comme ça ça passe le wrapping
         if self.color == "RED":
             img = image.get().astype(np.uint8)
-            print(type(img))
             mask += cv2.inRange(img,np.array([173,142,30]),np.array([179,255,255]))
             cv2.threshold(mask,0.5,1,0,dst = mask)
+            
+            
+            
         if self.morph:
             morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
             morphology.binary_closing(mask,selem = morphology.square(7), out = mask)
@@ -128,13 +139,14 @@ def applyTransform(trans,x):
     return y
 
 def createMap(img,trans,R_ROBOT = 65):
+
     filter_poly = colorfilter("BLACK")
     maskpoly = filter_poly.get_mask(img)
-    polyproj	=	cv2.warpPerspective(maskpoly, trans, (1000,1000))
-    ret, bin_polygons = cv2.threshold(polyproj,0.2,1,0)
+
     #margin = morphology.binary_dilation(bin_polygons,selem = morphology.disk(R_ROBOT))
-    print(R_ROBOT)
-    margin = cv2.dilate(bin_polygons, np.ones((R_ROBOT*2, R_ROBOT*2)).astype("uint8") ,iterations = 1)
+    yd,xd = np.ogrid[-R_ROBOT: R_ROBOT+1, -R_ROBOT: R_ROBOT+1]
+    disk = (xd**2+yd**2 <= R_ROBOT**2).astype('uint8')
+    margin = cv2.dilate(maskpoly,disk,iterations = 1)
     polyprojbin = margin.get().astype(np.uint8)
     contours, ret = cv2.findContours(polyprojbin, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     polygons = []
@@ -178,6 +190,7 @@ def getCentroid(imageBin):
 
 
 def getRobotPos(imageBin):
+    flag = False
     moments = measure.moments(imageBin, order = 3)
     centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
     varx = moments[0,2]/moments[0,0]-centroid[0]**2
@@ -198,13 +211,13 @@ def getRobotPos(imageBin):
 
 
     if abs(cm3x) >abs(cm3y):
-        if cm3x < 0:
+        if cm3x > 0:
             phi+= math.pi
     else:
-        if cm3y < 0:
+        if cm3y > 0:
             phi+= math.pi
     pos = np.append(centroid,phi)
-    return pos
+    return pos,flag
     
     
 

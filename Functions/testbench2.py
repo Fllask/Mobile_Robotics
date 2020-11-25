@@ -10,14 +10,13 @@ import Vision as v
 import cv2
 import math
 import numpy as np
-DISPLAY = False
+DISPLAY = True
 
 
-input_path = '../sample_pictures/test_set_2/03.jpg'
+input_path = '../sample_pictures/test_set_2/06.jpg'
 img = v.get_image(input_path)
-imgprep = v.preprocess(img)
-vis = v.Vision(imgprep)
-rob = np.array([500,500,math.pi/2])
+vis = v.Vision(img)
+rob = vis.returnDynamicCoordinates()
 if DISPLAY:
     img_real = cv2.warpPerspective(img, vis.trans, (1000,1000))
     obstacles = vis.getMap(downscale = False)
