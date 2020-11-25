@@ -5,15 +5,15 @@
 import os #to access os parameters (Process Ids mostly)
 from multiprocessing import * # I use the multiprocessing library for parallelism ==> https://docs.python.org/3.8/library/multiprocessing.html
 import time #to time routines and have some idea of what is slow
-import tkinter as tk #the windows are handled by tkinter => https://docs.python.org/3.8/library/tkinter.html
-
-#bindings from matplotlib to tk
-from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
-from matplotlib.figure import Figure
+import cv2
+print('OpenCL available:', cv2.ocl.haveOpenCL())
+import numpy as np
+import math
 
 #these are our modules
 from Utilities import Utilities
 from Global import Global
+import Vision as v
 
 """
 
@@ -46,56 +46,63 @@ class Compute():
             time.sleep(0.1)
             glob.computePaths()
 
-
-
-#this class handles the interface (it is the required tkInter class)
-class Window(tk.Frame):
-    def __init__(self, stopSignal, master=None):
-        #initializin g the window
-        super().__init__(master)
-        self.master = master
-        self.pack()
-
-        self.w = 1000
-        self.h = 1000
-
-        self.create_widgets()
-        self.stopSignal = stopSignal
-
-    def create_widgets(self):
-        # self.canvas = tk.Canvas(self.master, width=self.w, height=self.h)
-        # self.canvas.pack()
-        
-        fig = Figure(figsize=(100,100),dpi = 10)
-        self.canvas = FigureCanvasTkAgg(fig, self)
-
-        self.canvas.get_tk_widget().pack(side=tk.BOTTOM, fill=tk.BOTH, expand=True)
-
-        self.canvas._tkcanvas.pack(side=tk.TOP, fill=tk.BOTH, expand=True)
-
-    def quit_window(self):
-        print("QUITTING")
-        self.stopSignal.value = True
-        self.master.destroy()
-
 # main function, root of all the program
 if __name__ == '__main__':
-    
-    
-    
-    stopSignal = Value('b',False)
 
-    #initializing the window object
-    root = tk.Tk()
-    app = Window(stopSignal, master = root)
-    
-    root.protocol("WM_DELETE_WINDOW",app.quit_window)
+    t0 = time.process_time()
 
-    #initializing the compute object
-    compute = Compute()
+    input_path = '../sample_pictures/test_set_2/03.jpg'
+    img = v.get_image(input_path)
+
+    print("get_image : "+str(time.process_time()-t0))
+    t0 = t0 = time.process_time()
+
+    imgprep = v.preprocess(img)
+
+    print("preprocess : "+str(time.process_time()-t0))
+    t0 = t0 = time.process_time()
+
+    vis = v.Vision(imgprep)
+
+    print("Vision : "+str(time.process_time()-t0))
+    t0 = t0 = time.process_time()
+
+    print("Display : "+str(time.process_time()-t0))
+
+    rob = np.array([500,500,math.pi/2])
+
+    img_real = cv2.warpPerspective(img, vis.trans, (1000,1000))
+    obstacles = vis.getMap(downscale = False)
+    cv2.drawContours(img_real, obstacles, -1, (0,255,0), 3)
+    for p in obstacles:
+        for corner in p:
+            cv2.circle(img_real, tuple(corner.reshape(2)), 5, (255,255,0), thickness=1, lineType=8, shift=0)
+    pt1 = (int(rob[0]), int(rob[1]))
+    pt2 = (int(rob[0]+math.cos(rob[2])*100), int(rob[1]+math.sin(rob[2])*100))
+    cv2.line(img_real,pt1,pt2,(128,128,0),thickness=3)
+    cv2.circle(img_real,pt1,10,(128,128,0),thickness = 4)
+    cv2.namedWindow('map',cv2.WINDOW_NORMAL)
+    cv2.resizeWindow('map', 600,600)
+    cv2.imshow('map', img_real)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    #
+    # 
+
+
+    # stopSignal = Value('b',False)
+
+    # #initializing the window object
+    # root = tk.Tk()
+    # app = Window(stopSignal, master = root)
     
-    #running both main loops
-    compute.run(stopSignal)
-    app.mainloop()
+    # root.protocol("WM_DELETE_WINDOW",app.quit_window)
+
+    # #initializing the compute object
+    # compute = Compute()
+    
+    # #running both main loops
+    # compute.run(stopSignal)
+    # app.mainloop()
         
 

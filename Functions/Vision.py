@@ -84,11 +84,13 @@ class colorfilter:
              self.band = np.array([[0,179],[0,255],[0,25]])
              self.morph = True
     def get_mask(self,image):
-        mask = cv2.inRange(image,self.band[:,0],self.band[:,1])/255
+        mask = np.multiply(cv2.inRange(image,self.band[:,0],self.band[:,1]).get().astype(np.uint8),(1/255))
         
         #c'est sale, mais comme ça ça passe le wrapping
         if self.color == "RED":
-            mask += cv2.inRange(image,np.array([173,142,30]),np.array([179,255,255]))
+            img = image.get().astype(np.uint8)
+            print(type(img))
+            mask += cv2.inRange(img,np.array([173,142,30]),np.array([179,255,255]))
             cv2.threshold(mask,0.5,1,0,dst = mask)
         if self.morph:
             morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
@@ -97,16 +99,16 @@ class colorfilter:
             morphology.binary_opening(mask, selem = morphology.disk(4),out=mask)
             morphology.binary_closing(mask,out=mask,selem = morphology.disk(3))
 
-        return mask
+        return cv2.UMat(mask)
 
 def preprocess(img):
     imgsmall = cv2.resize(img,(624,416))
-    imgsmooth = np.copy(imgsmall)
+    imgsmooth = cv2.UMat(imgsmall)
     cv2.GaussianBlur(imgsmall,(5,5),0,dst = imgsmooth)
-    imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV)
+    imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV).get().astype(np.uint8)
     imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
     imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
-    return imgHSV
+    return cv2.UMat(imgHSV)
     
 def projection(corners):
     #corners: coordinates of TL TR BL BR in the image []
@@ -130,8 +132,9 @@ def createMap(img,trans,R_ROBOT = 65):
     maskpoly = filter_poly.get_mask(img)
     polyproj	=	cv2.warpPerspective(maskpoly, trans, (1000,1000))
     ret, bin_polygons = cv2.threshold(polyproj,0.2,1,0)
-    margin = morphology.binary_dilation(bin_polygons,selem = morphology.disk(R_ROBOT))
-    polyprojbin = margin.astype(np.uint8)
+    #margin = morphology.binary_dilation(bin_polygons,selem = morphology.disk(R_ROBOT))
+    margin = cv2.dilate(bin_polygons,None,iterations = 2)
+    polyprojbin = margin.get().astype(np.uint8)
     contours, ret = cv2.findContours(polyprojbin, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     polygons = []
     for c in contours:
@@ -151,17 +154,18 @@ def get_first_frame(input):
 def get_image(input):
     frame = cv2.imread(input)
     small_frame = cv2.resize(frame,(624,416))
-    return np.array(small_frame)
+    return cv2.UMat(small_frame)
 
 
 
 def getCentroid(imageBin):
     redflag = 0
-    moments = measure.moments(imageBin, order = 2)
+    img = imageBin.get().astype(np.uint8)
+    moments = measure.moments(img, order = 2)
     centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
     varx = moments[0,2]/moments[0,0]-centroid[0]**2
     vary = moments[2,0]/moments[0,0]-centroid[1]**2
-    if (np.isnan(varx)) or (max(varx,vary)>math.sqrt(imageBin.size)):
+    if (np.isnan(varx)) or (max(varx,vary)>math.sqrt(img.size)):
         print("invalide centroid")
         redflag = True
     return centroid,redflag

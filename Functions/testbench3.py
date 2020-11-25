@@ -12,7 +12,7 @@ import math
 import numpy as np
 
 
-input_path = "testdir.png"
+input_path = "../sample_pictures/test_set_2/03.jpg"
 img = v.get_image(input_path)
 imgbw = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 ret, imgb = cv2.threshold(imgbw,128,1,0)
