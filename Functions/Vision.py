@@ -156,13 +156,18 @@ def get_image(input):
 
 
 def getCentroid(imageBin):
-    redflag = 0
+    redflag = False
     moments = measure.moments(imageBin, order = 2)
-    centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
-    varx = moments[0,2]/moments[0,0]-centroid[0]**2
-    vary = moments[2,0]/moments[0,0]-centroid[1]**2
-    if (np.isnan(varx)) or (max(varx,vary)>math.sqrt(imageBin.size)):
-        print("invalide centroid")
+    centroid = np.array([0,0])
+    if moments[0,0]:
+        centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
+        varx = moments[0,2]/moments[0,0]-centroid[0]**2
+        vary = moments[2,0]/moments[0,0]-centroid[1]**2
+        if max(varx,vary)>math.sqrt(imageBin.size):
+            print("invalide centroid:noise")
+            redflag = True
+    else:
+        print("invalide centroid: no pixel")
         redflag = True
     return centroid,redflag
 
@@ -186,15 +191,11 @@ def getRobotPos(imageBin):
        -3*moments[2,0]*moments[1,0]/moments[0,0]\
        +2*moments[1,0]**3/moments[0,0]**2
 
-    print(cm3x)
-    print(cm3y)
-    
+
     if abs(cm3x) >abs(cm3y):
-        print("hor")
         if cm3x < 0:
             phi+= math.pi
     else:
-        print("vert")
         if cm3y < 0:
             phi+= math.pi
     pos = np.append(centroid,phi)
