@@ -5,6 +5,11 @@ from skimage import measure, morphology
 from scipy import linalg
 import math
 
+DEFAULT = 0
+BIG = 1
+NONE = 2
+
+
 def getTransform(image):
     #return a geometric transform (usable with cv2.warpPerspective or with )
     image = preprocess(image)
@@ -70,13 +75,13 @@ class Vision:
         '''
         filterob = colorfilter("ROBOT")
         mask = filterob.get_mask(self.frame).get().astype(np.uint8)
-        pos,flag = getRobotPos(mask)
-        return pos
+        pos,valid = getRobotPos(mask)
+        return pos,valid
 
     
 class colorfilter:
     def __init__(self, color):
-        self.morph = False
+        self.morph = DEFAULT
         self.color = color
         if color == "RED":
             self.band = np.array([[0,11],[142,255],[30,255]])
@@ -85,13 +90,14 @@ class colorfilter:
         if color == "BLUE":
             self.band = np.array([[110,130],[161,255],[41,220]])
         if color == "GREEN":
-            #filter in HSV
              self.band = np.array([[34,78],[135,255],[76,217]])
         if color == "ROBOT":
             self.band = np.array([[85,109],[107,255],[71,255]])
+            #self.morph = NONE
         if color == "BLACK":
              self.band = np.array([[0,179],[0,255],[0,25]])
-             self.morph = True
+             self.morph = BIG
+        
     def get_mask(self,image):
         mask = np.multiply(cv2.inRange(image,self.band[:,0],self.band[:,1]).get().astype(np.uint8),(1/255))
         
@@ -103,10 +109,10 @@ class colorfilter:
             
             
             
-        if self.morph:
+        if self.morph == BIG:
             morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
             morphology.binary_closing(mask,selem = morphology.square(7), out = mask)
-        else:
+        elif self.morph == DEFAULT:
             morphology.binary_opening(mask, selem = morphology.disk(4),out=mask)
             morphology.binary_closing(mask,out=mask,selem = morphology.disk(3))
 
@@ -172,52 +178,83 @@ def get_image(input):
 
 
 def getCentroid(imageBin):
-    redflag = False
+    invalid = False
     img = imageBin.get().astype(np.uint8)
     moments = measure.moments(img, order = 2)
-    centroid = np.array([0,0])
     if moments[0,0]:
         centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
         varx = moments[0,2]/moments[0,0]-centroid[0]**2
         vary = moments[2,0]/moments[0,0]-centroid[1]**2
-        if max(varx,vary)>math.sqrt(img.size):
+        if max(varx,vary)>img.size/100:
             print("invalide centroid:noise")
-            redflag = True
+            invalid = True
     else:
         print("invalide centroid: no pixel")
-        redflag = True
-    return centroid,redflag
+        invalid = True
+        centroid = np.array([0,0])
+
+    return centroid,invalid
 
 
 def getRobotPos(imageBin):
-    flag = False
+    if type(imageBin) is cv2.UMat:
+        imageBin = imageBin.get().astype(np.uint8)
+    valid = True
     moments = measure.moments(imageBin, order = 3)
-    centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
-    varx = moments[0,2]/moments[0,0]-centroid[0]**2
-    vary = moments[2,0]/moments[0,0]-centroid[1]**2
-    varxy = moments[1,1]/moments[0,0]-centroid[0]*centroid[1]
     
-    #get the angle
-    phi = math.atan(2*varxy/(varx-vary))/2 +(varx<vary)*math.pi/2
-    
-    #check direction
-    cm3x = moments[0,3] \
-           -3*moments[0,2]*moments[0,1]/moments[0,0]\
-           +2*moments[0,1]**3/moments[0,0]**2
-   
-    cm3y = moments[3,0] \
-       -3*moments[2,0]*moments[1,0]/moments[0,0]\
-       +2*moments[1,0]**3/moments[0,0]**2
-
-
-    if abs(cm3x) >abs(cm3y):
-        if cm3x > 0:
-            phi+= math.pi
+    if moments[0,0]:
+        centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
+        varx = moments[0,2]/moments[0,0]-centroid[0]**2
+        vary = moments[2,0]/moments[0,0]-centroid[1]**2
+        varxy = moments[1,1]/moments[0,0]-centroid[0]*centroid[1]
+        
+        
+        #check the variance of the image
+        if max(varx,vary)>imageBin.size/100:
+            print("invalide centroid:noise")
+            valid = False
+            
+        #get the angle
+        phi = math.atan(2*varxy/(varx-vary))/2 +(varx<vary)*math.pi/2
+        print(phi)
+        #check direction
+        cm3x = moments[0,3] \
+               -3*moments[0,2]*moments[0,1]/moments[0,0]\
+               +2*moments[0,1]**3/moments[0,0]**2
+       
+        cm3y = moments[3,0] \
+           -3*moments[2,0]*moments[1,0]/moments[0,0]\
+           +2*moments[1,0]**3/moments[0,0]**2
+        print("varx: "+str(varx))
+        print("vary: "+str(vary))
+        print(cm3x)
+        print(cm3y)
+        if abs(cm3x) >abs(cm3y):
+            if cm3x > 0:
+                print("C")
+                phi+= math.pi
+        else:
+            if cm3y > 0:
+                print("CA")
+                phi+= math.pi
+                
+        pos = np.append(centroid,phi)
+        
     else:
-        if cm3y > 0:
-            phi+= math.pi
-    pos = np.append(centroid,phi)
-    return pos,flag
+        print("invalide centroid: no pixel")
+        valid = False
+        pos = np.array([0,0,0])
+    imgtest = imageBin*255
+    pt1 = (int(pos[0]), int(pos[1]))
+    pt2 = (int(pos[0]+math.cos(pos[2])*100), int(pos[1]+math.sin(pos[2])*100))
+    cv2.line(imgtest,pt1,pt2,(128,128,0),thickness=3)
+    cv2.circle(imgtest,pt1,10,(128,128,0),thickness = 4)
+    
+    cv2.imshow("cul",cv2.resize(imgtest,(600,600)))
+    cv2.waitKey(0)
+
+    
+    return pos,valid
     
     
 
