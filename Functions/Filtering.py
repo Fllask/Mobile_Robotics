@@ -14,18 +14,18 @@ from Robot import Robot
 
 class Filtering:
 
-    def __init__(self, Rvel, Rcam, robot, Hvel,Hcam, Ts):
+    def __init__(self, Rvel, Rcam, robot, Hvel,Hcam,Ts):
         self.Rvel = Rvel
         self.Rcam = Rcam
         self.robot = robot
         self.Q = np.zeros((5,5))
         self.compute_Q(Ts,6.15) # Q to measure motor
-        self.compute_Qcam(0.1)  # Q for error in the camera x y position
+          
         self.Hcam=Hcam
         self.Hvel = Hvel
         self.Pest_priori = self.Q
         
-        self.Ts = Ts
+        
     
     @staticmethod
     def update(X_est,P_est_priori, zk, H, A, R):
@@ -48,7 +48,7 @@ class Filtering:
         #print('P_est\n',P_est)
         return X_est, P_est
 
-    def kalman(self, Xcam, X_est,th):
+    def kalman(self, Xcam, X_est,th,Ts):
         """Xcam is measured state with camera,
            X_est is predicted state from a priori state (by State Space), 
            A, B, are state space parameters, 
@@ -66,9 +66,9 @@ class Filtering:
         V_measured = np.array([[vL_measured],[vR_measured]])
         #print('vmeasured\n',V_measured)
         #print('V_measured',V_measured)
-        A = np.array([[1, 0, 0, self.Ts*m.cos(theta)/(2*self.robot.vTOm), self.Ts*m.cos(theta)/(2*self.robot.vTOm)],
-                      [0, 1, 0, self.Ts*m.sin(theta)/(2*self.robot.vTOm), self.Ts*m.sin(theta)/(2*self.robot.vTOm)],
-                      [0, 0, 1, self.Ts*1/(2*4.7*self.robot.vTOm), -1*self.Ts/(2*4.7*self.robot.vTOm)],
+        A = np.array([[1, 0, 0, Ts*m.cos(theta)/(2*self.robot.vTOm), Ts*m.cos(theta)/(2*self.robot.vTOm)],
+                      [0, 1, 0, Ts*m.sin(theta)/(2*self.robot.vTOm), Ts*m.sin(theta)/(2*self.robot.vTOm)],
+                      [0, 0, 1, Ts*1/(2*4.7*self.robot.vTOm), -1*Ts/(2*4.7*self.robot.vTOm)],
                       [0, 0, 0, 1., 0],
                       [0, 0, 0, 0, 1.]]) 
 
@@ -130,6 +130,3 @@ class Filtering:
        self.Q[4][4] = sig*Ts
        return self.Q
 
-    def compute_Qcam(self,sig):
-        self.Qcam=([[sig,0.,0.,0.,0.],[0.,sig,0.,0.,0.],[0.,0.,0.,0.,0.],[0.,0.,0.,0.,0.]])
-        return self.Qcam

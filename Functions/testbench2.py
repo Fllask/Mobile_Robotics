@@ -13,11 +13,10 @@ import numpy as np
 DISPLAY = True
 
 
-input_path = '../sample_pictures/test_set_2/03.jpg'
+input_path = '../sample_pictures/test_set_2/06.jpg'
 img = v.get_image(input_path)
-imgprep = v.preprocess(img)
-vis = v.Vision(imgprep)
-rob = np.array([500,500,math.pi/2])
+vis = v.Vision(img)
+rob,coordvalid = vis.returnDynamicCoordinates()
 if DISPLAY:
     img_real = cv2.warpPerspective(img, vis.trans, (1000,1000))
     obstacles = vis.getMap(downscale = False)
@@ -25,10 +24,12 @@ if DISPLAY:
     for p in obstacles:
         for corner in p:
             cv2.circle(img_real, tuple(corner.reshape(2)), 5, (255,255,0), thickness=1, lineType=8, shift=0)
-    pt1 = (int(rob[0]), int(rob[1]))
-    pt2 = (int(rob[0]+math.cos(rob[2])*100), int(rob[1]+math.sin(rob[2])*100))
-    cv2.line(img_real,pt1,pt2,(128,128,0),thickness=3)
-    cv2.circle(img_real,pt1,10,(128,128,0),thickness = 4)
+    if coordvalid:
+        pt1 = (int(rob[0]), int(rob[1]))
+        pt2 = (int(rob[0]+math.cos(rob[2])*100), int(rob[1]+math.sin(rob[2])*100))
+        cv2.line(img_real,pt1,pt2,(128,128,0),thickness=3)
+        cv2.circle(img_real,pt1,10,(128,128,0),thickness = 4)
+
     cv2.namedWindow('map',cv2.WINDOW_NORMAL)
     cv2.resizeWindow('map', 600,600)
     cv2.imshow('map', img_real)

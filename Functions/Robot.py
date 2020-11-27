@@ -54,12 +54,35 @@ class Robot:
         return self.b
 
     # assume alpha(0)is between -pi/2 and pi/2 and stays between those two values
-    def compute_state_equation(self,Ts):
+    def astofli_controller(self,p,a,b):
+        p_dot=-p*self.kp*m.cos(a)
+        a_dot=self.kp*m.sin(a)-self.ka*a-self.kb*b
+        b_dot=-self.kp*m.sin(a)
+        return p_dot,a_dot,b_dot
     
-        self.p=self.p*(1-Ts*self.kp*m.cos(self.a))
+    def compute_state_equation(self,Ts):
+        #use runge Kutta 2 for state space equation
+        if self.p>10:
+            p=10
+        else:
+            p=self.p
+
+        [p_dot1,a_dot1,b_dot1]=self.astofli_controller(p,self.a,self.b-self.bref)
+
+        p1=p+Ts*p_dot1
+        a1=self.a+Ts*a_dot1
+        b1=self.b+Ts*b_dot1
+
+        [p_dot2,a_dot2,b_dot2]=self.astofli_controller(p1,a1,b1-self.bref)
+
+        self.p=self.p+Ts/2.*p_dot1+Ts/2.*p_dot2
+        self.a=self.a+Ts/2.*a_dot1+Ts/2.*a_dot2
+        self.b=self.b+Ts/2.*b_dot1+Ts/2.*b_dot2
+        print('p\n',self.p)
+        #self.p=self.p*(1-Ts*self.kp*m.cos(self.a))
         #print('p after',self.p)
-        self.a=self.a+Ts*(self.kp*m.sin(self.a)-self.ka*self.a-self.kb*(self.b-self.bref))
-        self.b= self.b-Ts*(self.kp*m.sin(self.a))
+        #self.a=self.a+Ts*(self.kp*m.sin(self.a)-self.ka*self.a-self.kb*(self.b-self.bref))
+        #self.b= self.b-Ts*(self.kp*m.sin(self.a))
         #print('alpha',self.a)
         #print('beta',self.b)
 
@@ -68,12 +91,20 @@ class Robot:
 
     
     def compute_input(self):
+        # astofli controller proportional to the speed: take a point 10 cm in front 
 
-        self.u[0]=self.kp*self.p
+        if self.p>10:
+            p=10
+        else:
+            p=self.p
+
+        self.u[0]=self.kp*p
         self.u[1]=self.ka*self.a+self.kb*(self.b-self.bref)
 
-        #print('u0',self.u[0])
-        #print('u1',self.u[1])
+        print('v\n',self.u[0])
+        print('w\n',self.u[1])
+
+
         vM=self.u[0]*self.vTOm
         wM=self.u[1]*self.wTOm
 

@@ -20,11 +20,11 @@ global_path = [(0,0),(60,0),[60,31.5]]
 
 Init_pos = np.array([0.,0.,0.])
 Ts = 0.1
-kp = 0.15
-ka = 0.4
-kb = -0.07
+kp = 0.5    #0.15   #0.5
+ka = 0.85  #0.4    #0.8
+kb = -0.25   #-0.07  #-0.2
 
-vTOm=29.0
+vTOm=31.25
 wTOm=(200.0*180)/(80*m.pi)
 
 thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
@@ -35,15 +35,20 @@ Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
 Rcam = np.array([[0.05,0.],[0.,0.05]])
 Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.]])
 
-filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam, Ts)
+filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
 
 go=1
 # Begin testbench
+
+
+Time=0
+tinit=time.monotonic()
 while go:
+    tps1 = time.monotonic()
     thym.compute_state_equation(Ts)
     thym.compute_Pos()
-
-
+    
+    
 
     thym.check()
     thym.compute_input()
@@ -66,14 +71,15 @@ while go:
     #print('vect',vect)
 
     # sleep 0.1 second :
-    time.sleep(Ts)
-
+   
+    time.sleep(0.1)
+    
     # get the measurements from the camera : 
 
     # get our pos with the filter
-    X_filter=filter.kalman(0.0,vect,th)
+    X_filter=filter.kalman(0.0,vect,th,Ts)
     filter.compute_Q(Ts, 6.15)
-    print('Pos_no_filter\n',thym.Pos)
+    #print('Pos_no_filter\n',thym.Pos)
     thym.Pos=X_filter[0:3]
     print('Pos_filter\n',thym.Pos)
     thym.ML=X_filter[3]
@@ -81,11 +87,16 @@ while go:
 
     # with our new pose recompute p b and a (state of the astofi system)
     thym.compute_pba()
-
+    tps2 = time.monotonic()
+    Ts=tps2-tps1
+    print('Ts',Ts)
     if thym.p<1 and thym.node==len(thym.global_path)-2:
         th.set_var("motor.left.target", 0)
         th.set_var("motor.right.target", 0)
         print('FININSH!!!!')
+        tfinal=time.monotonic()
+        print('Final time in the robot\n',tfinal-tinit)
+        print('time of our state space equation\n',Time)
         go=0
 
 
