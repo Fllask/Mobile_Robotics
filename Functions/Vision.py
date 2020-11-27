@@ -225,17 +225,13 @@ def getRobotPos(imageBin):
         cm3y = moments[3,0] \
            -3*moments[2,0]*moments[1,0]/moments[0,0]\
            +2*moments[1,0]**3/moments[0,0]**2
-        print("varx: "+str(varx))
-        print("vary: "+str(vary))
         print(cm3x)
         print(cm3y)
         if abs(cm3x) >abs(cm3y):
             if cm3x > 0:
-                print("C")
                 phi+= math.pi
         else:
             if cm3y > 0:
-                print("CA")
                 phi+= math.pi
                 
         pos = np.append(centroid,phi)
@@ -244,14 +240,6 @@ def getRobotPos(imageBin):
         print("invalide centroid: no pixel")
         valid = False
         pos = np.array([0,0,0])
-    imgtest = imageBin*255
-    pt1 = (int(pos[0]), int(pos[1]))
-    pt2 = (int(pos[0]+math.cos(pos[2])*100), int(pos[1]+math.sin(pos[2])*100))
-    cv2.line(imgtest,pt1,pt2,(128,128,0),thickness=3)
-    cv2.circle(imgtest,pt1,10,(128,128,0),thickness = 4)
-    
-    cv2.imshow("cul",cv2.resize(imgtest,(600,600)))
-    cv2.waitKey(0)
 
     
     return pos,valid

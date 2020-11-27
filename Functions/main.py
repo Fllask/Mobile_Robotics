@@ -9,6 +9,7 @@ import cv2
 print('OpenCL available:', cv2.ocl.haveOpenCL())
 import numpy as np
 import math
+import copy
 
 #these are our modules
 from Utilities import Utilities
@@ -52,29 +53,26 @@ if __name__ == '__main__':
     t0 = time.process_time()
 
 
-    input_path = '../sample_pictures/test_set_2/05.jpg'
+    input_path = '../sample_pictures/test_set_2/06.jpg'
     img = v.get_image(input_path)
-
     print("get_image : "+str(time.process_time()-t0))
     t0 = t0 = time.process_time()
 
-    imgprep = v.preprocess(img)
+    vis = v.Vision(img)
 
-    print("preprocess : "+str(time.process_time()-t0))
-    t0 = t0 = time.process_time()
-
-    vis = v.Vision(imgprep)
-
-    print("Vision : "+str(time.process_time()-t0))
+    print("Mapping : "+str(time.process_time()-t0))
     t0 = t0 = time.process_time()
 
 
-    rob = np.array([500,500,math.pi/2])  ## position of the robot, will be set by getDynamicPos  
-
+    rbt = vis.returnDynamicCoordinates() ## getting robot coordinate
+    rob = rbt[0] 
+    print("Robot_Pos : "+str(time.process_time()-t0))
+    t0 = t0 = time.process_time()
+    print(rob)
     img_real = cv2.warpPerspective(img, vis.trans, (1000,1000))
     obstacles = vis.getMap(downscale = False)
 
-    g = Global(obstacles,(5,5),(86,73))
+    g = Global(obstacles,(float(rob[0]/10.),float(rob[1]/10.)),(5.,5.))
     path = g.plotPath(plotGraph=False,plotMap=False)
     print("Global : "+str(time.process_time()-t0))
     t0 = t0 = time.process_time()
