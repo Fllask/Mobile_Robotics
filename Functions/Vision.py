@@ -186,10 +186,10 @@ def getCentroid(imageBin):
         varx = moments[0,2]/moments[0,0]-centroid[0]**2
         vary = moments[2,0]/moments[0,0]-centroid[1]**2
         if max(varx,vary)>img.size/100:
-            print("invalide centroid:noise")
+            print("invalid centroid:noise")
             invalid = True
     else:
-        print("invalide centroid: no pixel")
+        print("invalid centroid: no pixel")
         invalid = True
         centroid = np.array([0,0])
 
@@ -211,7 +211,7 @@ def getRobotPos(imageBin):
         
         #check the variance of the image
         if max(varx,vary)>imageBin.size/100:
-            print("invalide centroid:noise")
+            print("invalid centroid:noise")
             valid = False
             
         #get the angle

@@ -52,7 +52,7 @@ if __name__ == '__main__':
     t0 = time.process_time()
 
 
-    input_path = '../sample_pictures/test_set_2/02.jpg'
+    input_path = '../sample_pictures/test_set_2/05.jpg'
     img = v.get_image(input_path)
 
     print("get_image : "+str(time.process_time()-t0))
