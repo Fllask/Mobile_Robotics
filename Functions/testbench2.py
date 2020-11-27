@@ -10,7 +10,7 @@ import Vision as v
 import cv2
 import math
 import numpy as np
-DISPLAY = False
+DISPLAY = True
 
 
 input_path = '../sample_pictures/test_set_2/03.jpg'

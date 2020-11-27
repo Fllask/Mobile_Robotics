@@ -51,7 +51,8 @@ if __name__ == '__main__':
 
     t0 = time.process_time()
 
-    input_path = '../sample_pictures/test_set_2/03.jpg'
+
+    input_path = '../sample_pictures/test_set_2/04.jpg'
     img = v.get_image(input_path)
 
     print("get_image : "+str(time.process_time()-t0))
@@ -67,12 +68,17 @@ if __name__ == '__main__':
     print("Vision : "+str(time.process_time()-t0))
     t0 = t0 = time.process_time()
 
-    print("Display : "+str(time.process_time()-t0))
 
-    rob = np.array([500,500,math.pi/2])
+    rob = np.array([500,500,math.pi/2])  ## position of the robot, will be set by getDynamicPos  
 
     img_real = cv2.warpPerspective(img, vis.trans, (1000,1000))
     obstacles = vis.getMap(downscale = False)
+
+    g = Global(obstacles,(5,5),(86,73))
+    path = g.plotPath(plotGraph=False,plotMap=False)
+    print("Global : "+str(time.process_time()-t0))
+    t0 = t0 = time.process_time()
+
     cv2.drawContours(img_real, obstacles, -1, (0,255,0), 3)
     for p in obstacles:
         for corner in p:
@@ -80,13 +86,15 @@ if __name__ == '__main__':
     pt1 = (int(rob[0]), int(rob[1]))
     pt2 = (int(rob[0]+math.cos(rob[2])*100), int(rob[1]+math.sin(rob[2])*100))
     cv2.line(img_real,pt1,pt2,(128,128,0),thickness=3)
+    for i in range(1,len(path)) :
+        cv2.line(img_real,(int(path[i][0]*10),int(path[i][1]*10)),(int(path[i-1][0]*10),int(path[i-1][1]*10)),(255,0,0),thickness=3)
     cv2.circle(img_real,pt1,10,(128,128,0),thickness = 4)
     cv2.namedWindow('map',cv2.WINDOW_NORMAL)
     cv2.resizeWindow('map', 600,600)
     cv2.imshow('map', img_real)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
-    #
+    # #
     # 
 
 

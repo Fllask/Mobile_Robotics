@@ -89,7 +89,6 @@ class colorfilter:
         #c'est sale, mais comme ça ça passe le wrapping
         if self.color == "RED":
             img = image.get().astype(np.uint8)
-            print(type(img))
             mask += cv2.inRange(img,np.array([173,142,30]),np.array([179,255,255]))
             cv2.threshold(mask,0.5,1,0,dst = mask)
         if self.morph:
@@ -133,7 +132,6 @@ def createMap(img,trans,R_ROBOT = 65):
     polyproj	=	cv2.warpPerspective(maskpoly, trans, (1000,1000))
     ret, bin_polygons = cv2.threshold(polyproj,0.2,1,0)
     #margin = morphology.binary_dilation(bin_polygons,selem = morphology.disk(R_ROBOT))
-    print(R_ROBOT)
     margin = cv2.dilate(bin_polygons, np.ones((R_ROBOT*2, R_ROBOT*2)).astype("uint8") ,iterations = 1)
     polyprojbin = margin.get().astype(np.uint8)
     contours, ret = cv2.findContours(polyprojbin, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)

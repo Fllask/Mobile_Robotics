@@ -17,7 +17,15 @@ class Global:
 
     #constructor
     def __init__(self, polyMap, start, finish):
-        self.polyMap = polyMap
+
+        self.polyMap = []
+        
+        for poly in polyMap:
+            nPoly = []
+            for p in poly:
+                nPoly.append( (float(p[0][0])/10.,float(p[0][1])/10. ))
+            self.polyMap.append(nPoly)
+
         self.start = start
         self.finish = finish
         self.navGraph = nx.Graph()
@@ -39,7 +47,8 @@ class Global:
             self.plot(self.computePaths(),dpath)
         if plotGraph:
             self.netPlot(self.navGraph,self.gPath,self.start,self.finish)
-
+        return path
+        
     # plots the map as a networkx graph
     def netPlot(self,G,path=False,start = False, finish = False):
         def generatePos(nodes):
