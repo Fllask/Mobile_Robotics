@@ -40,11 +40,11 @@ class Robot:
     def compute_pba(self):
             
         #print(self.node)
-        self.b=-ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
+        self.b=0 #-
         #print('pos1',self.global_path[(self.node)])
         #print('pos2',self.global_path[(self.node+1)])
         #print('self global path',self.global_path)
-        self.a=-self.Pos[2]-self.b
+        self.a=-self.Pos[2]+ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
         #print('POS',self.Pos[0:2])
         self.p=ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
@@ -55,30 +55,46 @@ class Robot:
 
     # assume alpha(0)is between -pi/2 and pi/2 and stays between those two values
     def astofli_controller(self,p,a,b):
-        p_dot=-p*self.kp*m.cos(a)
-        a_dot=self.kp*m.sin(a)-self.ka*a-self.kb*b
-        b_dot=-self.kp*m.sin(a)
+        p_dot=-self.kp*m.cos(a)
+        a_dot=(self.kp*m.sin(a)-self.ka*a-self.kb*b)/p
+        b_dot=(-self.kp*m.sin(a))/p
         return p_dot,a_dot,b_dot
     
+    def compute_rotation(self,Ts):
+        if self.a>m.pi/2:
+            w=0.3
+            self.Pos[2]=self.Pos[2]+self.Pos[2]*w*Ts
+            self.a=self.a-self.Pos[2]*w*Ts
+        else:
+            w=-0.3
+            self.Pos[2]=self.Pos[2]+self.Pos[2]*w*Ts
+            self.a=self.a-self.Pos[2]*w*Ts
+        self.u[0]=0
+        self.u[1]=w
+        return self.a
+
+
     def compute_state_equation(self,Ts):
         #use runge Kutta 2 for state space equation
-        if self.p>10:
-            p=10
-        else:
-            p=self.p
 
-        [p_dot1,a_dot1,b_dot1]=self.astofli_controller(p,self.a,self.b-self.bref)
 
-        p1=p+Ts*p_dot1
+        [p_dot1,a_dot1,b_dot1]=self.astofli_controller(self.p,self.a,self.b)
+
+        p1=self.p+Ts*p_dot1
         a1=self.a+Ts*a_dot1
         b1=self.b+Ts*b_dot1
 
-        [p_dot2,a_dot2,b_dot2]=self.astofli_controller(p1,a1,b1-self.bref)
+        [p_dot2,a_dot2,b_dot2]=self.astofli_controller(p1,a1,b1)
 
         self.p=self.p+Ts/2.*p_dot1+Ts/2.*p_dot2
         self.a=self.a+Ts/2.*a_dot1+Ts/2.*a_dot2
         self.b=self.b+Ts/2.*b_dot1+Ts/2.*b_dot2
-        print('p\n',self.p)
+        
+
+        self.u[0]=self.kp
+        self.u[1]=(self.ka*self.a+self.kb*(self.b))/self.p
+
+        #print('p\n',self.p)
         #self.p=self.p*(1-Ts*self.kp*m.cos(self.a))
         #print('p after',self.p)
         #self.a=self.a+Ts*(self.kp*m.sin(self.a)-self.ka*self.a-self.kb*(self.b-self.bref))
@@ -93,21 +109,22 @@ class Robot:
     def compute_input(self):
         # astofli controller proportional to the speed: take a point 10 cm in front 
 
-        if self.p>10:
-            p=10
-        else:
-            p=self.p
 
-        self.u[0]=self.kp*p
-        self.u[1]=self.ka*self.a+self.kb*(self.b-self.bref)
 
-        print('v\n',self.u[0])
-        print('w\n',self.u[1])
+
+
+        #print('v\n',self.u[0])
+        #print('w\n',self.u[1])
 
 
         vM=self.u[0]*self.vTOm
         wM=self.u[1]*self.wTOm
 
+        if abs(wM)>500:
+            print('ERROR wM')
+        if abs(self.a)>m.pi/2:
+            print('ERROR alpha')
+        
         ML=vM+wM
         MR=vM-wM
         #print('ML',self.ML)
@@ -129,13 +146,13 @@ class Robot:
 
     def compute_Pos(self):
         nextpos=self.global_path[self.node+1]
-        self.Pos[0]=float(nextpos[0]-self.p*m.cos(self.b))
-        self.Pos[1]=float(nextpos[1]+self.p*m.sin(self.b))
-        self.Pos[2]= float(-(self.b+self.a))
+        self.Pos[0]=float(nextpos[0]-self.p*m.cos(self.b+self.bref))
+        self.Pos[1]=float(nextpos[1]+self.p*m.sin(self.b+self.bref))
+        self.Pos[2]= float(-(self.b+self.bref+self.a))
         return self.Pos[0]
 
     def check(self):
-        if self.p<20 and self.node<(len(self.global_path)-2):
+        if self.p<5 and self.node<(len(self.global_path)-2):
             print(self.p)
             #compute a new alpha,beta,gamma
             self.node=self.node+1

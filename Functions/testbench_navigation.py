@@ -14,15 +14,15 @@ time.sleep(3) # To make sure the Thymio has had time to connect
 
 # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-global_path = [(0,0),(60,0),[60,31.5]]
+global_path = [(0,0),(60.,0.),[60.,31.5],[80.,55.]]
 
 # Initialise robot class
 
-Init_pos = np.array([0.,0.,0.])
+Init_pos = np.array([0.,0.,0])
 Ts = 0.1
-kp = 0.5    #0.15   #0.5
-ka = 0.85  #0.4    #0.8
-kb = -0.25   #-0.07  #-0.2
+kp = 3    #0.15   #0.5
+ka = 35  #0.4    #0.8
+kb = -8   #-0.07  #-0.2
 
 vTOm=31.25
 wTOm=(200.0*180)/(80*m.pi)
@@ -45,7 +45,13 @@ Time=0
 tinit=time.monotonic()
 while go:
     tps1 = time.monotonic()
-    thym.compute_state_equation(Ts)
+    print(thym.a)
+    if abs(thym.a)<m.pi/2:
+        thym.compute_state_equation(Ts)
+        print('astofli')
+    else:
+        thym.compute_rotation(Ts)
+        print('rotation')
     thym.compute_Pos()
     
     
@@ -56,7 +62,7 @@ while go:
     #print('input,',thym.MR)
     thym.run_on_thymio(th)
     
-    #print('POS',self.Pos)
+    #print('POS',thym.Pos)
 
     #[give : x,y,theta,vr,vl] to the filter : 
     vect=np.array([thym.Pos[0],thym.Pos[1],thym.Pos[2],thym.u[0],thym.u[1]]).T
@@ -79,7 +85,7 @@ while go:
     # get our pos with the filter
     X_filter=filter.kalman(0.0,vect,th,Ts)
     filter.compute_Q(Ts, 6.15)
-    #print('Pos_no_filter\n',thym.Pos)
+    print('Pos_no_filter\n',thym.Pos)
     thym.Pos=X_filter[0:3]
     print('Pos_filter\n',thym.Pos)
     thym.ML=X_filter[3]
@@ -89,8 +95,8 @@ while go:
     thym.compute_pba()
     tps2 = time.monotonic()
     Ts=tps2-tps1
-    print('Ts',Ts)
-    if thym.p<1 and thym.node==len(thym.global_path)-2:
+    #print('Ts',Ts)
+    if thym.p<3 and thym.node==len(thym.global_path)-2:
         th.set_var("motor.left.target", 0)
         th.set_var("motor.right.target", 0)
         print('FININSH!!!!')
