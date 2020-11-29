@@ -51,7 +51,7 @@ class Vision:
     """ Handles vision """
     i = 12345
 
-    def __init__(self,image, camera = "EXT3"):
+    def __init__(self,image, camera = "ANDROID FLASK"):
         self.camera = camera
         self.trans, invalid = getTransform(image, camera)
         self.setframe(image)    #generate self.frame
