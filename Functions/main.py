@@ -51,7 +51,7 @@ class ComputeVision():
     """ Image Loading Function """
     def loadImg(self):
         t0 = time.process_time()
-        input_path = '../sample_pictures/test_set_2/06.jpg'
+        input_path = '../sample_pictures/test_set_2/04.jpg'
         img = v.get_image(input_path)
         if self.verbose: 
             print("Image Query Time : "+str(time.process_time()-t0))
