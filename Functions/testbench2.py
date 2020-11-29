@@ -25,8 +25,8 @@ if DISPLAY:
         for corner in p:
             cv2.circle(img_real, tuple(corner.reshape(2)), 5, (255,255,0), thickness=1, lineType=8, shift=0)
     if coordvalid:
-        pt1 = (int(rob[0]), int(rob[1]))
-        pt2 = (int(rob[0]+math.cos(rob[2])*100), int(rob[1]+math.sin(rob[2])*100))
+        pt1 = (int(rob[0]*10), int(rob[1]*10))
+        pt2 = (int(rob[0]*10+math.cos(rob[2])*100), int(rob[1]*10+math.sin(rob[2])*100))
         cv2.line(img_real,pt1,pt2,(128,128,0),thickness=3)
         cv2.circle(img_real,pt1,10,(128,128,0),thickness = 4)
 
