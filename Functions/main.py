@@ -99,7 +99,7 @@ class ComputeVision():
         # querying robot coordinates
         t0 = time.process_time()
         rbt = self.vis.returnDynamicCoordinates() ## getting robot coordinate
-        self.rob = (rbt[0][0]/10,rbt[0][1]/10)
+        self.rob = (rbt[0][0],rbt[0][1])
         d['pos'] = self.rob
         if self.verbose:
             print("Initial Robot_Pos Estimation Time : "+str(time.process_time()-t0))
@@ -123,11 +123,12 @@ class ComputeVision():
             
             ## getting robot coordinates
             rbt = self.vis.returnDynamicCoordinates() 
-            self.rob = (rbt[0][0]/10,rbt[0][1]/10)
+            self.rob = (rbt[0][0],rbt[0][1])
             d['pos'] = self.rob
             
             ## computing path
-            #self.path = self.g.plotPath(plotGraph=False,plotMap=False)
+            self.g.start = self.rob
+            self.path = self.g.plotPath(plotGraph=False,plotMap=False)
 
             ## displaying whatever was computed
             disp = self.display()
