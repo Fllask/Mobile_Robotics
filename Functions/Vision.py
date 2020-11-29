@@ -100,22 +100,34 @@ class colorfilter:
         
     def get_mask(self,image):
         mask = np.multiply(cv2.inRange(image,self.band[:,0],self.band[:,1]).get().astype(np.uint8),(1/255))
-        
+        (wx,wy) = mask.shape
+
+        # print(str(wx) + " " + str(wy))
         #c'est sale, mais comme ça ça passe le wrapping
         if self.color == "RED":
             img = image.get().astype(np.uint8)
             mask += cv2.inRange(img,np.array([173,142,30]),np.array([179,255,255]))
             cv2.threshold(mask,0.5,1,0,dst = mask)
             
+        mask = cv2.UMat(mask) ## convert the mask to an opencl object for fast morphology
             
-            
-        if self.morph == BIG:
-            morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
-            morphology.binary_closing(mask,selem = morphology.square(7), out = mask)
-        elif self.morph == DEFAULT:
-            morphology.binary_opening(mask, selem = morphology.disk(4),out=mask)
-            morphology.binary_closing(mask,out=mask,selem = morphology.disk(3))
+        # if self.morph == BIG:
 
+            # np.ones((R_ROBOT, R_ROBOT)).astype("uint8")
+            # mask = cv2.dilate(mask,morphology.square(3))
+            # mask = cv2.erode(mask,morphology.square(7))
+            # mask = cv2.resize(mask,(wx//self.sfactor,wy//self.sfactor), interpolation=cv2.INTER_NEAREST)
+            # cv2.dilate(mask,morphology.disk(1).astype("uint8"))
+            #mask = cv2.resize(mask,(wx*3,wy*3), interpolation=cv2.INTER_NEAREST)
+            #cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3)).astype("uint8"))
+            # morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
+            # morphology.binary_closing(mask,selem = morphology.square(7), out = mask)
+        if self.morph == DEFAULT:
+            # morphology.binary_opening(mask, selem = morphology.disk(4),out=mask)
+            # cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
+            # morphology.binary_closing(mask,out=mask,selem = morphology.disk(3))
+            cv2.dilate(mask,np.ones((4,4)).astype("uint8"))
+            # mask = cv2.erode(mask,morphology.disk(3))
         return cv2.UMat(mask)
 
 def preprocess(img):
@@ -146,19 +158,21 @@ def applyTransform(trans,x):
 
 def createMap(img,trans,R_ROBOT = 65):
 
+    
+
     filter_poly = colorfilter("BLACK")
     maskpoly = filter_poly.get_mask(img)
-
-    #margin = morphology.binary_dilation(bin_polygons,selem = morphology.disk(R_ROBOT))
+    maskpoly = cv2.resize(maskpoly,(500,500), interpolation=cv2.INTER_NEAREST)
     yd,xd = np.ogrid[-R_ROBOT: R_ROBOT+1, -R_ROBOT: R_ROBOT+1]
-    disk = (xd**2+yd**2 <= R_ROBOT**2).astype('uint8')
+    disk = (xd**2+yd**2 <= (R_ROBOT//2)**2).astype('uint8')
     margin = cv2.dilate(maskpoly,disk,iterations = 1)
     polyprojbin = margin.get().astype(np.uint8)
     contours, ret = cv2.findContours(polyprojbin, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     polygons = []
     for c in contours:
         polygon    =  cv2.approxPolyDP(c, 15, True)
-        polygons.append(polygon)
+        polygons.append(polygon*2)
+        
     return polygons
 
 def get_first_frame(input):
@@ -172,7 +186,10 @@ def get_first_frame(input):
     return frame
 def get_image(input):
     frame = cv2.imread(input)
+    # frame = cv2.VideoCapture(1).read()
+    
     small_frame = cv2.resize(frame,(624,416))
+
     return cv2.UMat(small_frame)
 
 
@@ -216,7 +233,6 @@ def getRobotPos(imageBin):
             
         #get the angle
         phi = math.atan(2*varxy/(varx-vary))/2 +(varx<vary)*math.pi/2
-        print(phi)
         #check direction
         cm3x = moments[0,3] \
                -3*moments[0,2]*moments[0,1]/moments[0,0]\
@@ -225,8 +241,6 @@ def getRobotPos(imageBin):
         cm3y = moments[3,0] \
            -3*moments[2,0]*moments[1,0]/moments[0,0]\
            +2*moments[1,0]**3/moments[0,0]**2
-        print(cm3x)
-        print(cm3y)
         if abs(cm3x) >abs(cm3y):
             if cm3x > 0:
                 phi+= math.pi
