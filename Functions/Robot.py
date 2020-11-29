@@ -1,4 +1,4 @@
-from Thymio import Thymio
+from Functions.Thymio import Thymio
 import os
 import sys
 import time
@@ -7,7 +7,7 @@ import math as m
 import pandas as pd
 import math as m
 import serial
-from Utilities import Utilities
+from Functions.Utilities import Utilities
 ut = Utilities()
 
 """ Developped by: Thomas """
@@ -108,10 +108,6 @@ class Robot:
     
     def compute_input(self):
         # astofli controller proportional to the speed: take a point 10 cm in front 
-
-
-
-
 
         #print('v\n',self.u[0])
         #print('w\n',self.u[1])
