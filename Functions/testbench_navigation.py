@@ -14,11 +14,11 @@ time.sleep(3) # To make sure the Thymio has had time to connect
 
 # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-global_path = [(0,0),(60.,0.),[60.,31.5],[80.,55.]]
+global_path = [(0,0),(60.,0.),[60.,31.5]]
 
 # Initialise robot class
 
-Init_pos = np.array([0.,0.,0])
+Init_pos = np.array([0.,0.,0.])
 Ts = 0.1
 kp = 3    #0.15   #0.5
 ka = 35  #0.4    #0.8
@@ -85,9 +85,9 @@ while go:
     # get our pos with the filter
     X_filter=filter.kalman(0.0,vect,th,Ts)
     filter.compute_Q(Ts, 6.15)
-    print('Pos_no_filter\n',thym.Pos)
+    #print('Pos_no_filter\n',thym.Pos)
     thym.Pos=X_filter[0:3]
-    print('Pos_filter\n',thym.Pos)
+    #print('Pos_filter\n',thym.Pos)
     thym.ML=X_filter[3]
     thym.MR=X_filter[4]
 
