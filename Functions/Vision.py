@@ -10,29 +10,35 @@ BIG = 1
 NONE = 2
 
 
-def getTransform(image):
+def getTransform(image,camera):
     #return a geometric transform (usable with cv2.warpPerspective or with )
     image = preprocess(image)
     invalid = False
-    filr = colorfilter("RED")
-    filg = colorfilter("GREEN")
-    filb = colorfilter("BLUE")
-    fily = colorfilter("YELLOW")
+    filr = colorfilter("RED",camera)
+    filg = colorfilter("GREEN",camera)
+    filb = colorfilter("BLUE",camera)
+    fily = colorfilter("YELLOW",camera)
+    
     maskr= filr.get_mask(image)
     BL,fr = getCentroid(maskr)
     if fr:
         invalid = True
+        print("RED ERROR")
     maskg= filg.get_mask(image)
     TL,fg = getCentroid(maskg)
     if fg:
+        print("GREEN ERROR")
+
         invalid = True
     maskb= filb.get_mask(image)
     BR,fb = getCentroid(maskb)
     if fb:
+        print("BLUE ERROR")
         invalid = True
     masky= fily.get_mask(image)
     TR,fy = getCentroid(masky)
     if fy:
+        print("YELLOW ERROR")
         invalid = True
     if invalid:
         corners = np.array([[0,0],[624,0],[0,416],[624,416]], np.float32)
@@ -45,11 +51,11 @@ class Vision:
     """ Handles vision """
     i = 12345
 
-    def __init__(self,image):
-        
-        self.trans, invalid = getTransform(image)
+    def __init__(self,image, camera = "EXT3"):
+        self.camera = camera
+        self.trans, invalid = getTransform(image, camera)
         self.setframe(image)    #generate self.frame
-        self.map = createMap(self.frame,self.trans)
+        self.map = createMap(self.frame,camera = camera)
         if invalid:
             print("initialisation failed")
 
@@ -66,6 +72,7 @@ class Vision:
         img_real = cv2.warpPerspective(img_prep, self.trans, (1000,1000))
         self.frame = img_real
         
+    
     def returnDynamicCoordinates(self):
         """ returns an object containing the coordinates of the robot (a 3d numpy vector) 
         as well as the end point coordinates (a 2d numpy vector) 
@@ -73,31 +80,46 @@ class Vision:
         '''
     
         '''
-        filterob = colorfilter("ROBOT")
+        filterob = colorfilter("ROBOT",self.camera)
         mask = filterob.get_mask(self.frame).get().astype(np.uint8)
         pos,valid = getRobotPos(mask)
         return pos,valid
 
     
 class colorfilter:
-    def __init__(self, color):
+    def __init__(self, color, camera = "XT3"):
         self.morph = DEFAULT
         self.color = color
-        if color == "RED":
-            self.band = np.array([[0,11],[142,255],[30,255]])
-        if color == "YELLOW":
-            self.band = np.array([[25,33],[92,255],[92,255]])
-        if color == "BLUE":
-            self.band = np.array([[110,130],[161,255],[41,220]])
-        if color == "GREEN":
-             self.band = np.array([[34,78],[135,255],[76,217]])
-        if color == "ROBOT":
-            self.band = np.array([[85,109],[107,255],[71,255]])
-            #self.morph = NONE
-        if color == "BLACK":
-             self.band = np.array([[0,179],[0,255],[0,25]])
-             self.morph = BIG
-        
+        if camera == "XT3":
+            if color == "RED":
+                self.band = np.array([[0,11],[142,255],[30,255]])
+            if color == "YELLOW":
+                self.band = np.array([[25,33],[92,255],[92,255]])
+            if color == "BLUE":
+                self.band = np.array([[110,130],[161,255],[41,220]])
+            if color == "GREEN":
+                 self.band = np.array([[34,78],[135,255],[76,217]])
+            if color == "ROBOT":
+                self.band = np.array([[85,109],[107,255],[71,255]])
+                #self.morph = NONE
+            if color == "BLACK":
+                 self.band = np.array([[0,179],[0,255],[0,25]])
+                 self.morph = BIG
+        if camera == "ANDROID FLASK":
+            if color == "RED":
+                self.band = np.array([[0,11],[170,255],[100,200]])
+            if color == "YELLOW":
+                self.band = np.array([[25,33],[92,255],[92,255]])
+            if color == "BLUE":
+                self.band = np.array([[110,130],[161,255],[41,220]])
+            if color == "GREEN":
+                 self.band = np.array([[34,78],[135,255],[76,217]])
+            if color == "ROBOT":
+                self.band = np.array([[140,175],[100,255],[40,255]])
+                #self.morph = NONE
+            if color == "BLACK":
+                 self.band = np.array([[0,179],[0,128],[0,70]])
+                 self.morph = BIG
     def get_mask(self,image):
         mask = np.multiply(cv2.inRange(image,self.band[:,0],self.band[:,1]).get().astype(np.uint8),(1/255))
         # (wx,wy) = mask.shape
@@ -112,22 +134,11 @@ class colorfilter:
         mask = cv2.UMat(mask) ## convert the mask to an opencl object for fast morphology
             
         if self.morph == BIG:
+            cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((6,6)).astype("uint8"))
+        elif self.morph == DEFAULT:
+            cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((5,5)).astype("uint8"))
 
-            # np.ones((R_ROBOT, R_ROBOT)).astype("uint8")
-            # mask = cv2.dilate(mask,morphology.square(3))
-            # mask = cv2.erode(mask,morphology.square(7))
-            # mask = cv2.resize(mask,(wx//self.sfactor,wy//self.sfactor), interpolation=cv2.INTER_NEAREST)
-            # cv2.dilate(mask,morphology.disk(1).astype("uint8"))
-            #mask = cv2.resize(mask,(wx*3,wy*3), interpolation=cv2.INTER_NEAREST)
-            cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3)).astype("uint8"))
-            # morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
-            # morphology.binary_closing(mask,selem = morphology.square(7), out = mask)
-        if self.morph == DEFAULT:
-            # morphology.binary_opening(mask, selem = morphology.disk(4),out=mask)
-            # cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
-            # morphology.binary_closing(mask,out=mask,selem = morphology.disk(3))
-            cv2.dilate(mask,np.ones((4,4)).astype("uint8"))
-            # mask = cv2.erode(mask,morphology.disk(3))
+
         return cv2.UMat(mask)
 
 def preprocess(img):
@@ -156,11 +167,10 @@ def applyTransform(trans,x):
     y = (yp/yp[2])[0:2]
     return y
 
-def createMap(img,trans,R_ROBOT = 65):
-
+def createMap(img,R_ROBOT = 65,camera= "XT3"):
     
+    filter_poly = colorfilter("BLACK",camera)
 
-    filter_poly = colorfilter("BLACK")
     maskpoly = filter_poly.get_mask(img)
     maskpoly = cv2.resize(maskpoly,(500,500), interpolation=cv2.INTER_NEAREST)
     yd,xd = np.ogrid[-R_ROBOT: R_ROBOT+1, -R_ROBOT: R_ROBOT+1]
@@ -212,7 +222,7 @@ def getCentroid(imageBin):
     return centroid,invalid
 
 
-def getRobotPos(imageBin):
+def getRobotPos(imageBin, verbose = 0):
     if type(imageBin) is cv2.UMat:
         imageBin = imageBin.get().astype(np.uint8)
     valid = True
@@ -227,34 +237,78 @@ def getRobotPos(imageBin):
         
         #check the variance of the image
         if max(varx,vary)>imageBin.size/100:
-            print("invalid centroid:noise")
+            if verbose:
+                print("invalide centroid:noise")
             valid = False
             
         #get the angle
         phi = math.atan(2*varxy/(varx-vary))/2 +(varx<vary)*math.pi/2
+        if verbose:
+            print(phi)
         #check direction
-        cm3x = moments[0,3] \
-               -3*moments[0,2]*moments[0,1]/moments[0,0]\
-               +2*moments[0,1]**3/moments[0,0]**2
-       
-        cm3y = moments[3,0] \
-           -3*moments[2,0]*moments[1,0]/moments[0,0]\
-           +2*moments[1,0]**3/moments[0,0]**2
-        if abs(cm3x) >abs(cm3y):
-            if cm3x > 0:
-                phi+= math.pi
+        cm03 = moments[0,3] \
+               -3*moments[0,2]*centroid[0]\
+               +2*moments[0,1]*centroid[0]**2
+        cm30 = moments[3,0] \
+           -3*moments[2,0]*centroid[1]\
+           +2*moments[1,0]*centroid[1]**2
+        cm21 = moments[2,1]\
+            -2*centroid[0]*moments[1,1]\
+            -centroid[1]*moments[1,1]\
+            +2*centroid[0]**2*moments[0,1]
+        cm12 = moments[1,2]\
+            -2*centroid[1]*moments[1,1]\
+            -centroid[0]*moments[1,1]\
+            +2*centroid[1]**2*moments[1,0]
+        I7 = (3*cm21-cm03)*(cm30+cm12)*((cm30+cm12)**2-3*(cm21+cm03)**2)\
+              -(cm30-3*cm12)*(cm21+cm03)*(3*(cm30+cm12)**2-(cm21+cm03)**2)
+      
+        if verbose:
+            print("varx: "+str(varx))
+            print("vary: "+str(vary))
+            print(I7)
+            print("phi: "+str(phi*180/math.pi))   
+        hor = abs(cm03/varx**1.5) > abs(cm30/vary**1.5)
+        if verbose:
+            print("signx: "+ str(cm03>0)+" signy: "+str(cm30>0))
+            print("HORI: "+str( abs(cm03/varx**1.5) > abs(cm30/vary**1.5)))
+        if hor:
+            if verbose:
+                print("hor")
+            length = abs(cm03/1000000)
+            if cm03 < 0:
+                if verbose:
+                    print("+pi")
+                theta = phi+math.pi
+            else:
+                theta = phi
         else:
-            if cm3y > 0:
-                phi+= math.pi
+            if verbose:
+                print("vert")
+            length = abs(cm30/1000000)
+            if cm30 < 0:
+                if verbose:
+                    print("+pi")
+                theta = phi+math.pi
+            else:
+                theta = phi
+        pos = np.append(centroid,theta)
+
+        # imgtest = imageBin*255
+        # pt1 = (int(pos[0]), int(pos[1]))
+        # pt2 = (int(pos[0]+math.cos(pos[2])*length), int(pos[1]+math.sin(pos[2])*length))
+        # cv2.line(imgtest,pt1,pt2,(128,128,0),thickness=3)
+        # cv2.circle(imgtest,pt1,10,(128,128,0),thickness = 4)
+
                 
         pos = np.append(centroid,phi)
-        
     else:
         print("invalide centroid: no pixel")
         valid = False
-        pos = np.array([0,0,0])
+        pos = np.array([0,0,0])    
+    pos[0:2] = pos[0:2]/10
 
-    
+
     return pos,valid
     
     
