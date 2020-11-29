@@ -1,5 +1,6 @@
 {
   "Interpreter": "env\\Scripts\\python.exe",
   "python jedi.Enabled": true,
-  "SuppressEnvironmentCreationPrompt": true
+  "SuppressEnvironmentCreationPrompt": true,
+  "TestFramework": "Pytest"
 }
