@@ -100,7 +100,7 @@ class colorfilter:
         
     def get_mask(self,image):
         mask = np.multiply(cv2.inRange(image,self.band[:,0],self.band[:,1]).get().astype(np.uint8),(1/255))
-        (wx,wy) = mask.shape
+        # (wx,wy) = mask.shape
 
         # print(str(wx) + " " + str(wy))
         #c'est sale, mais comme ça ça passe le wrapping
@@ -111,7 +111,7 @@ class colorfilter:
             
         mask = cv2.UMat(mask) ## convert the mask to an opencl object for fast morphology
             
-        # if self.morph == BIG:
+        if self.morph == BIG:
 
             # np.ones((R_ROBOT, R_ROBOT)).astype("uint8")
             # mask = cv2.dilate(mask,morphology.square(3))
@@ -119,7 +119,7 @@ class colorfilter:
             # mask = cv2.resize(mask,(wx//self.sfactor,wy//self.sfactor), interpolation=cv2.INTER_NEAREST)
             # cv2.dilate(mask,morphology.disk(1).astype("uint8"))
             #mask = cv2.resize(mask,(wx*3,wy*3), interpolation=cv2.INTER_NEAREST)
-            #cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3)).astype("uint8"))
+            cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((3,3)).astype("uint8"))
             # morphology.binary_opening(mask,selem = morphology.square(3), out = mask)
             # morphology.binary_closing(mask,selem = morphology.square(7), out = mask)
         if self.morph == DEFAULT:

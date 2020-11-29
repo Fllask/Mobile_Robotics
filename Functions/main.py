@@ -14,6 +14,8 @@ import numpy as np
 import math
 import copy
 
+from Thymio import Thymio
+
 #these are our modules
 from Utilities import Utilities
 from Global import Global
@@ -37,7 +39,11 @@ def display():
     #spawn windows 
     time.sleep(0.1)
 
-#this class handles the math
+""" 
+    ComputeVision:
+    Handles the vision and global planning as a process
+    @autor: Titou
+"""
 class ComputeVision():
     """ Constructor of the ComputeVision class"""
     def __init__(self,verbose):
@@ -106,7 +112,7 @@ class ComputeVision():
             self.rob = (rbt[0][0]/10,rbt[0][1]/10)
             
             ## computing path
-            self.path = self.g.plotPath(plotGraph=False,plotMap=False)
+            #self.path = self.g.plotPath(plotGraph=False,plotMap=False)
 
             ## displaying whatever was computed
             disp = self.display()
@@ -117,9 +123,45 @@ class ComputeVision():
             
             if self.verbose:
                 print("Full Vision Loop : "+str(time.process_time()-t0))
+
+
+""" 
+    RobotControl:
+    Handles the control of the robot as a process (fast loop)
+    @autor: Titou
+"""
+class RobotControl():
+    """ Constructor of the RobotControl class """
+    def __init__(self,verbose,address):
+        self.verbose = verbose
+
+        if self.verbose:
+            print("Connecting to Thymio at address "+address+" ... ")
+        try:
+            self.th = Thymio.serial(port=address, refreshing_rate=0.1)
+            time.sleep(3)
+            self.th.set_var_array("leds.top", [0, 0, 0])
+            if self.verbose:
+                print("connection successful !")
+        except:
+            print("Unexpected error:", sys.exc_info()[0])
+            raise
+
+    """ Starts the control process """
+    def run(self):
+        mainLoopProcess = Process(target=self.mainLoop, args=())
+        mainLoopProcess.start()
+
+    """ Main control loop """
+    def mainLoop(self):
+        print("LOOP")
+
             
 
-# main function, root of all the program
+"""
+    main function, root of all the program
+    @autor: Titou
+"""
 if __name__ == '__main__':
 
 
@@ -130,57 +172,12 @@ if __name__ == '__main__':
             print("Running Verbose Mode")
             verbose = True
 
-    
+    try:
+        ctrl = RobotControl(verbose,"/dev/cu.usbmodem141401")
+    except:
+        sys.exit(1)
+
     cmptVis = ComputeVision(verbose)
 
-    cmptVis.run()
-    
-
-    # main loop
-    # while True:
-        # t0 = t0 = time.process_time()
-        # img = loadImg()
-        # vis.setframe(img)
-        # rbt = vis.returnDynamicCoordinates() ## getting robot coordinate
-        # rob = rbt[0] 
-        # path = g.plotPath(plotGraph=False,plotMap=False)
-        # if verbose:
-        #     print("Full Vision Loop : "+str(time.process_time()-t0))
-
-
-    """ main display function needs to be wrapped in utilities this is too ugly"""
-    # cv2.drawContours(img_real, obstacles, -1, (0,255,0), 3)
-    # for p in obstacles:
-    #     for corner in p:
-    #         cv2.circle(img_real, tuple(corner.reshape(2)), 5, (255,255,0), thickness=1, lineType=8, shift=0)
-    # pt1 = (int(rob[0]), int(rob[1]))
-    # pt2 = (int(rob[0]+math.cos(rob[2])*100), int(rob[1]+math.sin(rob[2])*100))
-    # cv2.line(img_real,pt1,pt2,(128,128,0),thickness=3)
-    # for i in range(1,len(path)) :
-    #     cv2.line(img_real,(int(path[i][0]*10),int(path[i][1]*10)),(int(path[i-1][0]*10),int(path[i-1][1]*10)),(255,0,0),thickness=3)
-    # cv2.circle(img_real,pt1,10,(128,128,0),thickness = 4)
-    # cv2.namedWindow('map',cv2.WINDOW_NORMAL)
-    # cv2.resizeWindow('map', 600,600)
-    # cv2.imshow('map', img_real)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
-
-    """ BREAK """
-
-
-    # stopSignal = Value('b',False)
-
-    # #initializing the window object
-    # root = tk.Tk()
-    # app = Window(stopSignal, master = root)
-    
-    # root.protocol("WM_DELETE_WINDOW",app.quit_window)
-
-    # #initializing the compute object
-    # compute = Compute()
-    
-    # #running both main loops
-    # compute.run(stopSignal)
-    # app.mainloop()
-        
-
+    # cmptVis.run()
+    ctrl.run()
