@@ -1,4 +1,4 @@
-""" Developped by: Titouan """
+""" @author: Titou """
 
 from Utilities import Utilities
 import matplotlib.pyplot as plt

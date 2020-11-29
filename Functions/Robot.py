@@ -31,16 +31,16 @@ class Robot:
         self.compute_pba()
         
         self.u=np.array([0.0,0.0])          # [v;w] speed and angular velocity
-        self.ML=0       # value to put in the left part of the motor
-        self.MR=0       # value to put on the right wheel motor
-        self.state=0    # state of the robot 
+        self.ML=0                           # value to put in the left part of the motor
+        self.MR=0                           # value to put on the right wheel motor
+        self.state=0                        # state of the robot 
     
     
     
     def compute_pba(self):
             
         #print(self.node)
-        self.b=0 #-
+              
         #print('pos1',self.global_path[(self.node)])
         #print('pos2',self.global_path[(self.node+1)])
         #print('self global path',self.global_path)
@@ -48,6 +48,8 @@ class Robot:
         #print('POS',self.Pos[0:2])
         self.p=ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
+
+        self.b=-self.Pos[2]-self.bref-self.a 
         #print('self b',self.b)
         #print('self.a',self.a)
         #print('self.p',self.p)
