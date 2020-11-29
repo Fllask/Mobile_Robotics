@@ -19,8 +19,6 @@ ret,frame = cap.read()
 
 vis = v.Vision(frame, "ANDROID FLASK")
 
-print(frame.shape)
-
 
 while (True):
     

@@ -1,3 +1,5 @@
+#!/Library/Frameworks/Python.framework/Versions/3.8/bin/python3.8
+#the line above makes it more nicely executable on my mac, PATH may differ on different machines
 
 from Thymio import Thymio
 import os

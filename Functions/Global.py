@@ -1,4 +1,4 @@
-""" Developped by: Titouan """
+""" @author: Titou """
 
 from Utilities import Utilities
 import matplotlib.pyplot as plt
@@ -17,12 +17,21 @@ class Global:
 
     #constructor
     def __init__(self, polyMap, start, finish):
-        self.polyMap = polyMap
+
+        self.polyMap = []
+        
+        for poly in polyMap:
+            nPoly = []
+            for p in poly:
+                nPoly.append( (float(p[0][0]),float(p[0][1])))
+            self.polyMap.append(nPoly)
+
         self.start = start
         self.finish = finish
         self.navGraph = nx.Graph()
         self.utilities = Utilities()
         self.gPath = False
+        self.path = False
 
     #plots the map and paths
     def plot(self,debugLines=False,emphasedLines=False):
@@ -39,7 +48,9 @@ class Global:
             self.plot(self.computePaths(),dpath)
         if plotGraph:
             self.netPlot(self.navGraph,self.gPath,self.start,self.finish)
-
+        self.path = path
+        return path
+        
     # plots the map as a networkx graph
     def netPlot(self,G,path=False,start = False, finish = False):
         def generatePos(nodes):
