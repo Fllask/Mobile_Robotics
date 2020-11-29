@@ -27,6 +27,7 @@ from Thymio import Thymio
 from Utilities import Utilities
 from Global import Global
 import Vision as v
+import Robot as r
 
 """ 
     ComputeVision:
@@ -58,13 +59,26 @@ class ComputeVision():
 
     """ Displays processed data """
     def display(self):
+        #projecting the image
         tr_img = cv2.warpPerspective(self.img, self.vis.trans, (1000,1000))
 
-        cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 3)
+        font = cv2.FONT_HERSHEY_SIMPLEX 
 
+        #plotting the obstacles detected
+        cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
+
+        #plotting the gobal navigation path
         path = self.g.path
         for i in range(1,len(path)) :
-            cv2.line(tr_img,(int(path[i][0]*10),int(path[i][1]*10)),(int(path[i-1][0]*10),int(path[i-1][1]*10)),(255,0,0),thickness=3)
+            cv2.line(tr_img,(int(path[i][0]*10),int(path[i][1]*10)),(int(path[i-1][0]*10),int(path[i-1][1]*10)),(0,0,0),thickness=2)
+        
+        ## plotting the robot's position
+
+        cv2.circle(tr_img,(int(self.rob[0]*10),int(self.rob[1]*10)),60,(0,0,255),thickness=4)
+        tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+        ## plotting the goal
+        cv2.circle(tr_img,(int(self.stop[0]*10),int(self.stop[1]*10)),60,(255,0,0),thickness=4)
+        tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*10),int(self.stop[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
 
         return tr_img
 
@@ -77,6 +91,8 @@ class ComputeVision():
         self.img = self.loadImg()
         t0 = time.process_time()
         self.vis = v.Vision(self.img)
+
+        self.stop = (5.,5.)
         if self.verbose:
             print("Initial Mapping Time : " + str(time.process_time()-t0))
 
@@ -92,7 +108,7 @@ class ComputeVision():
         t0 = time.process_time()
         self.obstacles = self.vis.getMap()
         d['map'] = self.obstacles
-        self.g = Global(self.obstacles,(float(self.rob[0]),float(self.rob[1])),(5.,5.))
+        self.g = Global(self.obstacles,(float(self.rob[0]),float(self.rob[1])),self.stop)
         self.path = self.g.plotPath(plotGraph=False,plotMap=False)
         d['path'] = self.path
         if self.verbose:
@@ -208,6 +224,7 @@ if __name__ == '__main__':
     d['pos'] = False
     d['path'] = False
     d['map'] = False
+    d['goal'] = False
     d['vtime'] = "0"
 
     cmptVis = ComputeVision(False)
