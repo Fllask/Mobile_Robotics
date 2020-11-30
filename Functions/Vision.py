@@ -272,7 +272,7 @@ def getRobotPos(imageBin, verbose = 0):
         pos = np.array([0,0,0])
         
     pos[0:2] = pos[0:2]/5
-
+    pos[2]=(math.pi+pos[2])%(2*math.pi)-math.pi
 
     return pos,valid
     
