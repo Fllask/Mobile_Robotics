@@ -38,21 +38,11 @@ class Robot:
     
     
     def compute_pba(self):
-            
-        #print(self.node)
-              
-        #print('pos1',self.global_path[(self.node)])
-        #print('pos2',self.global_path[(self.node+1)])
-        #print('self global path',self.global_path)
+        
         self.a=-self.Pos[2]+ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
-        #print('POS',self.Pos[0:2])
         self.p=ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
-
         self.b=-self.Pos[2]-self.bref-self.a 
-        #print('self b',self.b)
-        #print('self.a',self.a)
-        #print('self.p',self.p)
         return self.b
 
     # assume alpha(0)is between -pi/2 and pi/2 and stays between those two values
@@ -96,24 +86,8 @@ class Robot:
         self.u[0]=self.kp
         self.u[1]=(self.ka*self.a+self.kb*(self.b))/self.p
 
-        #print('p\n',self.p)
-        #self.p=self.p*(1-Ts*self.kp*m.cos(self.a))
-        #print('p after',self.p)
-        #self.a=self.a+Ts*(self.kp*m.sin(self.a)-self.ka*self.a-self.kb*(self.b-self.bref))
-        #self.b= self.b-Ts*(self.kp*m.sin(self.a))
-        #print('alpha',self.a)
-        #print('beta',self.b)
-
-
-
-
-    
     def compute_input(self):
         # astofli controller proportional to the speed: take a point 10 cm in front 
-
-        #print('v\n',self.u[0])
-        #print('w\n',self.u[1])
-
 
         vM=self.u[0]*self.vTOm
         wM=self.u[1]*self.wTOm
@@ -125,21 +99,22 @@ class Robot:
         
         ML=vM+wM
         MR=vM-wM
-        #print('ML',self.ML)
-        #print('MR',self.MR)
         ML = ML if ML >= 0 else 2 ** 16 + ML
         ML = int(ML)
         MR = MR if MR >= 0 else 2 ** 16 + MR
         MR = int(MR)
 
         self.ML=ML
-        self.MR=MR
+        self.MR=MR+3
 
         return self.ML
 
     def run_on_thymio(self,th):
         th.set_var("motor.left.target", self.ML)
         th.set_var("motor.right.target", self.MR)
+        #print('ML\n',self.ML)
+        #print('MR\n',self.MR)
+        
         return self.ML
 
     def compute_Pos(self):
@@ -151,10 +126,8 @@ class Robot:
 
     def check(self):
         if self.p<5 and self.node<(len(self.global_path)-2):
-            print(self.p)
             #compute a new alpha,beta,gamma
             self.node=self.node+1
-            print('node',self.node)
             self.compute_pba()
         return self.node
 
@@ -164,7 +137,6 @@ class Robot:
         while True:
             self.compute_state_equation(Ts)
             self.compute_Pos()
-            #print('POS',self.Pos)
 
             self.check()
             self.compute_input()
