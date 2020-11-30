@@ -1,36 +1,36 @@
 
-from Robot import Robot
-from Filtering import Filtering
-from Thymio import Thymio
+from Functions.Robot import Robot
+from Functions.Filtering import Filtering
+from Functions.Thymio import Thymio
 import os
 import sys
 import numpy as np
 import math as m
 import time
 #
-th = Thymio.serial(port="\\.\COM3", refreshing_rate=0.1)
+th = Thymio.serial(port="COM3", refreshing_rate=0.1)
 
 time.sleep(3) # To make sure the Thymio has had time to connect
 
 # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-global_path = [(0,0),(60.,0.),[60.,31.5],[80.,55.]]
+global_path = [(0,0),(60.,31.5),(120.,31.5)]
 
 # Initialise robot class
 
-Init_pos = np.array([0.,0.,0])
+Init_pos = np.array([0.,0.,0.])
 Ts = 0.1
 kp = 3    #0.15   #0.5
 ka = 35  #0.4    #0.8
 kb = -8   #-0.07  #-0.2
 
-vTOm=31.25
-wTOm=(200.0*180)/(80*m.pi)
+vTOm=30.30
+wTOm=130.5
 
 thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
 
 # Initialise Filtering class
-Rvel = np.array([[0.5, 0.], [0.,0.5]])
+Rvel = np.array([[1.53, 0.], [0.,1.53]])
 Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
 Rcam = np.array([[0.05,0.],[0.,0.05]])
 Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.]])
@@ -85,9 +85,9 @@ while go:
     # get our pos with the filter
     X_filter=filter.kalman(0.0,vect,th,Ts)
     filter.compute_Q(Ts, 6.15)
-    print('Pos_no_filter\n',thym.Pos)
+    #print('Pos_no_filter\n',thym.Pos)
     thym.Pos=X_filter[0:3]
-    print('Pos_filter\n',thym.Pos)
+    #print('Pos_filter\n',thym.Pos)
     thym.ML=X_filter[3]
     thym.MR=X_filter[4]
 

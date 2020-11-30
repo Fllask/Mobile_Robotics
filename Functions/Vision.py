@@ -51,7 +51,7 @@ class Vision:
     """ Handles vision """
     i = 12345
 
-    def __init__(self,image, camera = "EXT3"):
+    def __init__(self,image, camera = "ANDROID FLASK"):
         self.camera = camera
         self.trans, invalid = getTransform(image, camera)
         self.setframe(image)    #generate self.frame
@@ -195,11 +195,10 @@ def get_first_frame(input):
     ret, frame = video.read()
     return frame
 def get_image(input):
-    frame = cv2.imread(input)
-    # frame = cv2.VideoCapture(1).read()
+    frame = cv2.imread(input) 
+    # frame = cv2.VideoCapture(0).read()
     
     small_frame = cv2.resize(frame,(624,416))
-
     return cv2.UMat(small_frame)
 
 

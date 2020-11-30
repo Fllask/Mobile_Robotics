@@ -7,9 +7,9 @@ import serial
 import numpy as np
 import math as m
 
-from Thymio import Thymio
-from Timer import RepeatedTimer
-from Robot import Robot
+from Functions.Thymio import Thymio
+from Functions.Timer import RepeatedTimer
+from Functions.Robot import Robot
 
 
 class Filtering:
@@ -19,7 +19,7 @@ class Filtering:
         self.Rcam = Rcam
         self.robot = robot
         self.Q = np.zeros((5,5))
-        self.compute_Q(Ts,6.15) # Q to measure motor
+        self.compute_Q(Ts,2.5) # Q to measure motor
           
         self.Hcam=Hcam
         self.Hvel = Hvel
