@@ -62,7 +62,7 @@ class ComputeVision():
     """ Displays processed data """
     def display(self):
         #projecting the image
-        tr_img = cv2.warpPerspective(self.img, self.vis.trans, (1000,1000))
+        tr_img = cv2.warpPerspective(self.img, self.vis.trans, (500,500))
 
         font = cv2.FONT_HERSHEY_SIMPLEX 
 
@@ -289,7 +289,7 @@ if __name__ == '__main__':
             verbose = True
 
     try:
-        ctrl = RobotControl(verbose,"/dev/cu.usbmodem141101")
+        ctrl = RobotControl(verbose,"/dev/cu.usbmodem141401")
     except:
         sys.exit(1)
 

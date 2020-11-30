@@ -9,7 +9,7 @@ import Vision as v
 import cv2
 import math
 import numpy as np
-
+import time
 CAMERA = "ANDROID FLASK"
 cap = cv2.VideoCapture(1)
 
