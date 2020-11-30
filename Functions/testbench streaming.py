@@ -13,10 +13,10 @@ import time
 DISPLAY = True
 
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(2)
 
 ret,frame = cap.read()
-
+#frame = cv2.imread('../sample_pictures/new color.jpg')
 vis = v.Vision(frame, "ANDROID FLASK")
 
 
@@ -49,7 +49,7 @@ while (True):
         cv2.resizeWindow('internal map', 600,600)
         cv2.imshow('internal map', vis.frame)
     t1 = time.process_time()
-    print(t1-t0)
+    #print(t1-t0)
     if cv2.waitKey(1) & 0XFF == ord('q'):
         break 
 

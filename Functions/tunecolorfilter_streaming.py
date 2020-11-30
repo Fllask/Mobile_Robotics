@@ -11,12 +11,12 @@ import math
 import numpy as np
 import time
 CAMERA = "ANDROID FLASK"
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(2)
 
 while(1):
     
     ret,img = cap.read()
-
+    #img = cv2.imread('../sample_pictures/new color.jpg')
     img = v.preprocess(img)
     imgbgr = cv2.cvtColor(img,cv2.COLOR_HSV2BGR)
     filterg = v.colorfilter("ROBOT", camera =CAMERA)
@@ -31,4 +31,5 @@ while(1):
     if cv2.waitKey(1) & 0XFF == ord('q'):
         break 
 cap.release()
+#cv2.waitKey(0)
 cv2.destroyAllWindows()
