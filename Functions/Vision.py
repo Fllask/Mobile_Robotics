@@ -240,11 +240,9 @@ def getRobotPos(imageBin, verbose = 0):
         vary = moments[2,0]/moments[0,0]-centroid[1]**2
         varxy = moments[1,1]/moments[0,0]-centroid[0]*centroid[1]
         
-        print(varx)
         #check the variance of the image
         if max(varx,vary)>imageBin.size**0.5:
-            if verbose:
-                print("invalide centroid:noise")
+            print("invalide centroid:noise")
             valid = False
             
         #get the angle
