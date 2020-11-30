@@ -27,7 +27,7 @@ from Thymio import Thymio
 from Utilities import Utilities
 from Global import Global
 import Vision as v
-import Robot as r
+# import Robot as r
 
 """ 
     ComputeVision:
