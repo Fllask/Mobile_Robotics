@@ -109,13 +109,13 @@ class colorfilter:
             if color == "RED":
                 self.band = np.array([[0,11],[210,255],[100,200]])
             if color == "YELLOW":
-                self.band = np.array([[25,33],[92,255],[92,255]])
+                self.band = np.array([[20,40],[128,255],[30,255]])
             if color == "BLUE":
                 self.band = np.array([[110,130],[161,255],[41,220]])
             if color == "GREEN":
-                 self.band = np.array([[34,78],[135,255],[76,217]])
+                 self.band = np.array([[40,80],[135,255],[0,217]])
             if color == "ROBOT":
-                self.band = np.array([[130,165],[200,255],[128,200]])
+                self.band = np.array([[150,170],[200,255],[30,200]])
                 self.morph = NONE
             if color == "BLACK":
                  self.band = np.array([[0,179],[0,128],[0,70]])
@@ -242,7 +242,7 @@ def getRobotPos(imageBin, verbose = 0):
         
         #check the variance of the image
         if max(varx,vary)>imageBin.size**0.5:
-            print("invalide centroid:noise")
+            print("invalide coord:noise")
             valid = False
             
         #get the angle
@@ -257,7 +257,7 @@ def getRobotPos(imageBin, verbose = 0):
         #cv2.imshow("seg",imgsegmented*255)
         # print(phi)
         imgrot = ndimage.rotate(imgsegmented,phi*180/math.pi, reshape = False)
-        cv2.imshow("rot",imageBin*255)
+        #cv2.imshow("rot",imageBin*255)
         newmoments = measure.moments(imgrot)
         cm03 = newmoments[0,3] \
                -3*newmoments[0,2]*newmoments[0,1]/newmoments[0,0]\
@@ -266,10 +266,10 @@ def getRobotPos(imageBin, verbose = 0):
             phi+=math.pi
         pos = np.append(centroid,phi)
     else:
-        print("invalide centroid: no pixel")
+        print("invalide coord: no pixel")
         valid = False
-    if ~valid:
         pos = np.array([0,0,0])
+        
     pos[0:2] = pos[0:2]/5
 
 
