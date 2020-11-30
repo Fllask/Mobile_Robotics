@@ -127,8 +127,8 @@ class ComputeVision():
             d['pos'] = self.rob
             
             ## computing path
-            self.g.start = self.rob
-            self.path = self.g.plotPath(plotGraph=False,plotMap=False)
+            # self.g.start = self.rob
+            # self.path = self.g.plotPath(plotGraph=False,plotMap=False)
 
             ## displaying whatever was computed
             disp = self.display()
@@ -195,6 +195,9 @@ class RobotControl():
                     print("control period : " + str(rt))
                     print("vision period : "+d["vtime"])
                     print("position of robot : "+str(nd['pos']))
+
+
+            """ insert robot control """
 
             
 
