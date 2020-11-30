@@ -1,7 +1,7 @@
 
-from Functions.Robot import Robot
-from Functions.Filtering import Filtering
-from Functions.Thymio import Thymio
+from Robot import Robot
+from Filtering import Filtering
+from Thymio import Thymio
 import os
 import sys
 import numpy as np
@@ -14,7 +14,7 @@ time.sleep(3) # To make sure the Thymio has had time to connect
 
 # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-global_path = [(0,0),(60.,31.5),(120.,31.5)]
+global_path = [(0,0),(60.,31.5),(120,31.5)]
 
 # Initialise robot class
 
@@ -24,8 +24,8 @@ kp = 3    #0.15   #0.5
 ka = 35  #0.4    #0.8
 kb = -8   #-0.07  #-0.2
 
-vTOm=30.30
-wTOm=130.5
+vTOm=31.5 #30.30
+wTOm=(200*180)/(80*m.pi) #130.5 #
 
 thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
 
@@ -83,13 +83,13 @@ while go:
     # get the measurements from the camera : 
 
     # get our pos with the filter
-    X_filter=filter.kalman(0.0,vect,th,Ts)
-    filter.compute_Q(Ts, 6.15)
+    #X_filter=filter.kalman(0.0,vect,th,Ts)
+    #filter.compute_Q(Ts, 6.15)
     #print('Pos_no_filter\n',thym.Pos)
-    thym.Pos=X_filter[0:3]
+    #thym.Pos=X_filter[0:3]
     #print('Pos_filter\n',thym.Pos)
-    thym.ML=X_filter[3]
-    thym.MR=X_filter[4]
+    #thym.ML=X_filter[3]
+    #thym.MR=X_filter[4]
 
     # with our new pose recompute p b and a (state of the astofi system)
     thym.compute_pba()
