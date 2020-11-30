@@ -19,7 +19,7 @@ while(1):
 
     img = v.preprocess(img)
     imgbgr = cv2.cvtColor(img,cv2.COLOR_HSV2BGR)
-    filterg = v.colorfilter("BLACK", camera =CAMERA)
+    filterg = v.colorfilter("ROBOT", camera =CAMERA)
     mask = filterg.get_mask(img)
     cv2.imshow('mask',mask)
     GC, flag = v.getCentroid(mask)
