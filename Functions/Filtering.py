@@ -31,21 +31,11 @@ class Filtering:
     def update(X_est,P_est_priori, zk, H, A, R):
 
         innovation = zk - np.dot(H,X_est)
-        #print('zk',zk)
-        #print('X_est',X_est)
-        #print("S")
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
-        
-        #print("K")
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        #print('K',K)
-        #print('innovation\n',innovation)
-
+        print('K\n',K)
         X_est = X_est + np.dot(K,innovation)
-        #print(X_est)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
-
-        #print('P_est\n',P_est)
         return X_est, P_est
 
     def kalman(self, Xcam, X_est,th,Ts):
@@ -64,21 +54,14 @@ class Filtering:
             vL_measured=0
         
         V_measured = np.array([[vL_measured],[vR_measured]])
-        #print('vmeasured\n',V_measured)
-        #print('V_measured',V_measured)
+
         A = np.array([[1, 0, 0, Ts*m.cos(theta)/(2*self.robot.vTOm), Ts*m.cos(theta)/(2*self.robot.vTOm)],
                       [0, 1, 0, Ts*m.sin(theta)/(2*self.robot.vTOm), Ts*m.sin(theta)/(2*self.robot.vTOm)],
                       [0, 0, 1, Ts*1/(2*4.7*self.robot.vTOm), -1*Ts/(2*4.7*self.robot.vTOm)],
                       [0, 0, 0, 1., 0],
                       [0, 0, 0, 0, 1.]]) 
 
-        
-        #print(X_est)
         P_est = np.dot(A,np.dot(self.Pest_priori,A.T)) + self.Q
-        #print('premiere partie\n',np.dot(A,np.dot(self.Pest_priori,A.T)) )
-        #print('Q',self.Q)
-        #print('P_est',P_est)
-
 
         #Update for velocity sensor
 
