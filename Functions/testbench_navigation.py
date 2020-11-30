@@ -1,7 +1,7 @@
 
-from Robot import Robot
-from Filtering import Filtering
-from Thymio import Thymio
+from Functions.Robot import Robot
+from Functions.Filtering import Filtering
+from Functions.Thymio import Thymio
 import os
 import sys
 import numpy as np
@@ -20,7 +20,7 @@ time.sleep(3) # To make sure the Thymio has had time to connect
 
 # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-global_path = [(0,0),(60,31.5)]
+global_path = [(0,0),(60,0)]
 
 # Initialise robot class
 
@@ -38,8 +38,8 @@ thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
 # Initialise Filtering class
 Rvel = np.array([[1.53, 0.], [0.,1.53]])
 Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
-Rcam = np.array([[0.05,0.],[0.,0.05]])
-Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.]])
+Rcam = np.array([[0.000001,0.,0.],[0.,0.000001,0.],[0.,0.,0.000001]])
+Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
 
 filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
 
@@ -77,6 +77,11 @@ while go:
     
     vect=np.array([[x],[y],[theta],[vL],[vR]])
 
+    telapsed = time.time() - tstart
+
+    Xcam = 3.*telapsed
+
+    pos_cam = np.array([[Xcam],[0],[0]])
     # Print current state (no filter)
     #print('x,y,theta, Vl,Vr\n', vect)
 
@@ -87,11 +92,11 @@ while go:
     # get the measurements from the camera : 
 
     # get our pos with the filter
-    #X_filter=filter.kalman(0.0,vect,th,Ts)
-    #filter.compute_Q(Ts, 6.15)
-    #thym.Pos=X_filter[0:3]
-    #thym.ML=X_filter[3]
-    #thym.MR=X_filter[4]
+    X_filter=filter.kalman(pos_cam,vect,th,Ts,True)
+    filter.compute_Q(Ts, 6.15)
+    thym.Pos=X_filter[0:3]
+    thym.ML=X_filter[3]
+    thym.MR=X_filter[4]
 
     #Vl_filter = X_filter[3]
     #Vr_filter = X_filter[4]
@@ -103,7 +108,7 @@ while go:
     tps2 = time.monotonic()
     Ts=tps2-tps1
 
-    telapsed = time.time() - tstart
+    
 
 
     if thym.p<3 and thym.node==len(thym.global_path)-2:
@@ -115,9 +120,9 @@ while go:
         print('time of our state space equation\n',Time)
         go=0
 
-    with open(path,"a") as f :
-        f.write(f'' + str(telapsed) + '\t')
-        f.write(f'' + str(vL) + '\t')
-        f.write(f'' + str(vR) + '\n')
+    #with open(path,"a") as f :
+        #f.write(f'' + str(telapsed) + '\t')
+        #f.write(f'' + str(vL) + '\t')
+        #f.write(f'' + str(vR) + '\n')
 
 

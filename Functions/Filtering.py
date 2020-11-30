@@ -7,9 +7,9 @@ import serial
 import numpy as np
 import math as m
 
-from Thymio import Thymio
-from Timer import RepeatedTimer
-from Robot import Robot
+from Functions.Thymio import Thymio
+from Functions.Timer import RepeatedTimer
+from Functions.Robot import Robot
 
 
 class Filtering:
@@ -38,7 +38,7 @@ class Filtering:
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
         return X_est, P_est
 
-    def kalman(self, Xcam, X_est,th,Ts):
+    def kalman(self, Xcam, X_est,th,Ts,update_cam):
         """Xcam is measured state with camera,
            X_est is predicted state from a priori state (by State Space), 
            A, B, are state space parameters, 
@@ -68,14 +68,27 @@ class Filtering:
         X_est, P_est = self.update(X_est, P_est,V_measured, self.Hvel, A, self.Rvel)
 
         #Update for camera sensor
-
-        #X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
+        if update_cam :
+            X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
 
 
         #return
         self.Pest_priori = P_est
 
         return X_est
+    def compute_kalman(self,pos_cam,states_robot,th,Ts,update_cam):
+        ''' Function to call for the filtering
+            pos_cam : position measured by camera
+            states_robot : states of the robot
+            th : serial link of the robot to gt vr and vl measured
+            Ts : sampling time
+            update_cam : boolean to know if we update kalman with the measurements of the camera or not '''
+
+        X_filter=filter.kalman(pos_cam,states_robot,th,Ts,update_cam)
+        filter.compute_Q(Ts, 6.15)
+        self.robot.Pos=X_filter[0:3]
+        self.robotthym.ML=X_filter[3]
+        self.robotthym.MR=X_filter[4]
 
     def compute_Q(self,Ts,sig):
 
