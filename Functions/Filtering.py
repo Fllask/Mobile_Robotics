@@ -7,9 +7,9 @@ import serial
 import numpy as np
 import math as m
 
-from Functions.Thymio import Thymio
-from Functions.Timer import RepeatedTimer
-from Functions.Robot import Robot
+from Thymio import Thymio
+from Timer import RepeatedTimer
+from Robot import Robot
 
 
 class Filtering:

@@ -1,4 +1,4 @@
-from Functions.Thymio import Thymio
+from Thymio import Thymio
 import os
 import sys
 import time
@@ -7,7 +7,7 @@ import math as m
 import pandas as pd
 import math as m
 import serial
-from Functions.Utilities import Utilities
+from Utilities import Utilities
 ut = Utilities()
 
 """ Developped by: Thomas """
@@ -105,13 +105,16 @@ class Robot:
         MR = int(MR)
 
         self.ML=ML
-        self.MR=MR
+        self.MR=MR+3
 
         return self.ML
 
     def run_on_thymio(self,th):
         th.set_var("motor.left.target", self.ML)
         th.set_var("motor.right.target", self.MR)
+        print('ML\n',self.ML)
+        print('MR\n',self.MR)
+        
         return self.ML
 
     def compute_Pos(self):

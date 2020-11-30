@@ -1,7 +1,7 @@
 
-from Functions.Robot import Robot
-from Functions.Filtering import Filtering
-from Functions.Thymio import Thymio
+from Robot import Robot
+from Filtering import Filtering
+from Thymio import Thymio
 import os
 import sys
 import numpy as np
@@ -30,8 +30,8 @@ kp = 3    #0.15   #0.5
 ka = 35  #0.4    #0.8
 kb = -8   #-0.07  #-0.2
 
-vTOm=30.30
-wTOm=130.5
+vTOm=31.5 #30.30
+wTOm=(200*180)/(80*m.pi) #130.5 #
 
 thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
 
