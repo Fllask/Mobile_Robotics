@@ -2,7 +2,7 @@
 import cv2 #read video and images
 import numpy as np
 from skimage import measure, morphology
-from scipy import linalg
+from scipy import linalg, ndimage
 import math
 
 DEFAULT = 0
@@ -246,61 +246,20 @@ def getRobotPos(imageBin, verbose = 0):
         if verbose:
             print(phi)
         #check direction
-        cm03 = moments[0,3] \
-               -3*moments[0,2]*centroid[0]\
-               +2*moments[0,1]*centroid[0]**2
-        cm30 = moments[3,0] \
-           -3*moments[2,0]*centroid[1]\
-           +2*moments[1,0]*centroid[1]**2
-        cm21 = moments[2,1]\
-            -2*centroid[0]*moments[1,1]\
-            -centroid[1]*moments[1,1]\
-            +2*centroid[0]**2*moments[0,1]
-        cm12 = moments[1,2]\
-            -2*centroid[1]*moments[1,1]\
-            -centroid[0]*moments[1,1]\
-            +2*centroid[1]**2*moments[1,0]
-        I7 = (3*cm21-cm03)*(cm30+cm12)*((cm30+cm12)**2-3*(cm21+cm03)**2)\
-              -(cm30-3*cm12)*(cm21+cm03)*(3*(cm30+cm12)**2-(cm21+cm03)**2)
-      
-        if verbose:
-            print("varx: "+str(varx))
-            print("vary: "+str(vary))
-            print(I7)
-            print("phi: "+str(phi*180/math.pi))   
-        hor = abs(cm03/varx**1.5) > abs(cm30/vary**1.5)
-        if verbose:
-            print("signx: "+ str(cm03>0)+" signy: "+str(cm30>0))
-            print("HORI: "+str( abs(cm03/varx**1.5) > abs(cm30/vary**1.5)))
-        if hor:
-            if verbose:
-                print("hor")
-            length = abs(cm03/1000000)
-            if cm03 < 0:
-                if verbose:
-                    print("+pi")
-                theta = phi+math.pi
-            else:
-                theta = phi
-        else:
-            if verbose:
-                print("vert")
-            length = abs(cm30/1000000)
-            if cm30 < 0:
-                if verbose:
-                    print("+pi")
-                theta = phi+math.pi
-            else:
-                theta = phi
-        pos = np.append(centroid,theta)
-
-        # imgtest = imageBin*255
-        # pt1 = (int(pos[0]), int(pos[1]))
-        # pt2 = (int(pos[0]+math.cos(pos[2])*length), int(pos[1]+math.sin(pos[2])*length))
-        # cv2.line(imgtest,pt1,pt2,(128,128,0),thickness=3)
-        # cv2.circle(imgtest,pt1,10,(128,128,0),thickness = 4)
-
-                
+        imgsegmented = imageBin[int(centroid[1]-100):int(centroid[1]+100)\
+                                ,int(centroid[0]-100):int(centroid[0]+100)]
+        
+        # print(imgsegmented.shape)
+        # cv2.imshow("seg",imgsegmented*255)
+        # print(phi)
+        imgrot = ndimage.rotate(imgsegmented,phi*180/math.pi, reshape = False)
+        # cv2.imshow("rot",imgrot*255)
+        newmoments = measure.moments(imgrot)
+        cm03 = newmoments[0,3] \
+               -3*newmoments[0,2]*newmoments[0,1]/newmoments[0,0]\
+               +2*newmoments[0,1]**3/newmoments[0,0]**2
+        if cm03 < 0:
+            phi+=math.pi
         pos = np.append(centroid,phi)
     else:
         print("invalide centroid: no pixel")
@@ -312,4 +271,3 @@ def getRobotPos(imageBin, verbose = 0):
     return pos,valid
     
     
-

@@ -31,24 +31,14 @@ class Filtering:
     def update(X_est,P_est_priori, zk, H, A, R):
 
         innovation = zk - np.dot(H,X_est)
-        #print('zk',zk)
-        #print('X_est',X_est)
-        #print("S")
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
-        
-        #print("K")
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        #print('K',K)
-        #print('innovation\n',innovation)
-
+        print('K\n',K)
         X_est = X_est + np.dot(K,innovation)
-        #print(X_est)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
-
-        #print('P_est\n',P_est)
         return X_est, P_est
 
-    def kalman(self, Xcam, X_est,th,Ts):
+    def kalman(self, Xcam, X_est,th,Ts,update_cam):
         """Xcam is measured state with camera,
            X_est is predicted state from a priori state (by State Space), 
            A, B, are state space parameters, 
@@ -64,35 +54,41 @@ class Filtering:
             vL_measured=0
         
         V_measured = np.array([[vL_measured],[vR_measured]])
-        #print('vmeasured\n',V_measured)
-        #print('V_measured',V_measured)
+
         A = np.array([[1, 0, 0, Ts*m.cos(theta)/(2*self.robot.vTOm), Ts*m.cos(theta)/(2*self.robot.vTOm)],
                       [0, 1, 0, Ts*m.sin(theta)/(2*self.robot.vTOm), Ts*m.sin(theta)/(2*self.robot.vTOm)],
                       [0, 0, 1, Ts*1/(2*4.7*self.robot.vTOm), -1*Ts/(2*4.7*self.robot.vTOm)],
                       [0, 0, 0, 1., 0],
                       [0, 0, 0, 0, 1.]]) 
 
-        
-        #print(X_est)
         P_est = np.dot(A,np.dot(self.Pest_priori,A.T)) + self.Q
-        #print('premiere partie\n',np.dot(A,np.dot(self.Pest_priori,A.T)) )
-        #print('Q',self.Q)
-        #print('P_est',P_est)
-
 
         #Update for velocity sensor
 
         X_est, P_est = self.update(X_est, P_est,V_measured, self.Hvel, A, self.Rvel)
 
         #Update for camera sensor
-
-        #X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
+        if update_cam :
+            X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
 
 
         #return
         self.Pest_priori = P_est
 
         return X_est
+    def compute_kalman(self,pos_cam,states_robot,th,Ts,update_cam):
+        ''' Function to call for the filtering
+            pos_cam : position measured by camera
+            states_robot : states of the robot
+            th : serial link of the robot to gt vr and vl measured
+            Ts : sampling time
+            update_cam : boolean to know if we update kalman with the measurements of the camera or not '''
+
+        X_filter=filter.kalman(pos_cam,states_robot,th,Ts,update_cam)
+        filter.compute_Q(Ts, 6.15)
+        self.robot.Pos=X_filter[0:3]
+        self.robotthym.ML=X_filter[3]
+        self.robotthym.MR=X_filter[4]
 
     def compute_Q(self,Ts,sig):
 
