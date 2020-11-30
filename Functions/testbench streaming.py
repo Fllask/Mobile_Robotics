@@ -47,7 +47,7 @@ while (True):
         cv2.imshow('map', img_real)
         cv2.namedWindow('internal map',cv2.WINDOW_NORMAL)
         cv2.resizeWindow('internal map', 600,600)
-        cv2.imshow('internal map', vis.frame)
+        cv2.imshow('internal map', cv2.cvtColor(vis.frame,cv2.COLOR_HSV2BGR))
     t1 = time.process_time()
     #print(t1-t0)
     if cv2.waitKey(1) & 0XFF == ord('q'):
