@@ -112,8 +112,8 @@ class Robot:
     def run_on_thymio(self,th):
         th.set_var("motor.left.target", self.ML)
         th.set_var("motor.right.target", self.MR)
-        print('ML\n',self.ML)
-        print('MR\n',self.MR)
+        #print('ML\n',self.ML)
+        #print('MR\n',self.MR)
         
         return self.ML
 

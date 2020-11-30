@@ -84,11 +84,11 @@ class Filtering:
             Ts : sampling time
             update_cam : boolean to know if we update kalman with the measurements of the camera or not '''
 
-        X_filter=filter.kalman(pos_cam,states_robot,th,Ts,update_cam)
-        filter.compute_Q(Ts, 6.15)
+        X_filter=self.kalman(pos_cam,states_robot,th,Ts,update_cam)
+        self.compute_Q(Ts, 6.15)
         self.robot.Pos=X_filter[0:3]
-        self.robotthym.ML=X_filter[3]
-        self.robotthym.MR=X_filter[4]
+        self.robot.ML=X_filter[3]
+        self.robot.MR=X_filter[4]
 
     def compute_Q(self,Ts,sig):
 

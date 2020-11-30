@@ -92,11 +92,7 @@ while go:
     # get the measurements from the camera : 
 
     # get our pos with the filter
-    X_filter=filter.kalman(pos_cam,vect,th,Ts,True)
-    filter.compute_Q(Ts, 6.15)
-    thym.Pos=X_filter[0:3]
-    thym.ML=X_filter[3]
-    thym.MR=X_filter[4]
+    filter.compute_kalman(pos_cam,vect,th,Ts,True)
 
     #Vl_filter = X_filter[3]
     #Vr_filter = X_filter[4]

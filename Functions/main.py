@@ -21,12 +21,14 @@ import numpy as np
 import math
 import copy
 
-from Thymio import Thymio
+from Functions.Thymio import Thymio
 
 #these are our modules
-from Utilities import Utilities
-from Global import Global
-import Vision as v
+from Functions.Utilities import Utilities
+from Functions.Global import Global
+import Functions.Vision as v
+from Functions.Robot import Robot
+from Functions.Filtering import Filtering
 # import Robot as r
 
 """ 
@@ -51,7 +53,7 @@ class ComputeVision():
     """ Image Loading Function """
     def loadImg(self):
         t0 = time.process_time()
-        input_path = '../sample_pictures/test_set_2/04.jpg'
+        input_path = 'sample_pictures/test_set_2/04.jpg'
         img = v.get_image(input_path)
         if self.verbose: 
             print("Image Query Time : "+str(time.process_time()-t0))
@@ -185,7 +187,39 @@ class RobotControl():
 
         if self.verbose:
             print("Starting main loop")
-        while True:
+
+       
+
+        # Initialise robot class
+
+        Init_pos = np.array([0.,0.,0.])
+        Ts = 0.1
+        kp = 3    #0.15   #0.5
+        ka = 35  #0.4    #0.8
+        kb = -8   #-0.07  #-0.2
+        vTOm=31.5 #30.30
+        wTOm=(200*180)/(80*math.pi) #130.5 #
+
+        global_path = d['path'] if d['path'] else [(0,0)]
+        thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
+
+        # Initialise Filtering class
+        Rvel = np.array([[1.53, 0.], [0.,1.53]])
+        Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
+        Rcam = np.array([[0.000001,0.,0.],[0.,0.000001,0.],[0.,0.,0.000001]])
+        Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
+
+        filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
+        go=1
+
+        while go:
+            tps1 = time.monotonic()
+             # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
+
+            global_path = d['path'] if d['path'] else [(0,0)]
+            thym.global_path = global_path
+            pos_cam = d['pos'] if d['pos'] else np.array[[0],[0]]
+
             rt = time.process_time() - t0
             t0 = time.process_time()
             if int(round(time.process_time(),0)) > t:
@@ -197,7 +231,42 @@ class RobotControl():
                     print("position of robot : "+str(nd['pos']))
 
 
-            """ insert robot control """
+
+            thym.compute_state_equation(Ts)
+            thym.compute_Pos()
+            thym.check()
+            thym.compute_input()
+            thym.run_on_thymio(self.th)
+
+            #[give : x,y,theta,vr,vl] to the filter : 
+            x=float(thym.Pos[0])
+            y=float(thym.Pos[1])
+            theta=float(thym.Pos[2])
+
+            vL=int(thym.ML) if thym.ML<=500 else thym.ML - 2** 16 
+            vR=int(thym.MR) if thym.MR<=500 else thym.MR - 2** 16 
+    
+            vect=np.array([[x],[y],[theta],[vL],[vR]])
+
+            time.sleep(0.1)
+    
+            # get the measurements from the camera : 
+
+            # get our pos with the filter
+            filter.compute_kalman(pos_cam,vect,self.th,Ts,False)
+
+            thym.compute_pba()
+
+            tps2 = time.monotonic()
+            Ts=tps2-tps1
+
+            if thym.p<3 and thym.node==len(thym.global_path)-2:
+                self.th.set_var("motor.left.target", 0)
+                self.th.set_var("motor.right.target", 0)
+                print('FININSH!!!!')
+                tfinal=time.monotonic()
+                print('Final time in the robot\n',tfinal-tinit)
+                go = 0
 
             
 
@@ -211,14 +280,14 @@ if __name__ == '__main__':
 
 
     """ Parsing stdin """
-    verbose = False
+    verbose = True
     for i in range (1,len(sys.argv)):
         if sys.argv[i] == "v":
             print("Running Verbose Mode")
             verbose = True
 
     try:
-        ctrl = RobotControl(verbose,"/dev/cu.usbmodem141401")
+        ctrl = RobotControl(verbose,"COM3")
     except:
         sys.exit(1)
 
