@@ -2,7 +2,7 @@
 import cv2 #read video and images
 import numpy as np
 from skimage import measure, morphology
-from scipy import linalg
+from scipy import linalg, ndimage
 import math
 
 DEFAULT = 0
@@ -246,9 +246,14 @@ def getRobotPos(imageBin, verbose = 0):
         if verbose:
             print(phi)
         #check direction
-        imgsegmented = imageBin[int(centroid[0]-varx):int(centroid[0]+varx)\
-                                ,int(centroid[1]-vary):int(centroid[1]+vary)]
-        imgrot = rotate_image(imgsegmented,phi)
+        imgsegmented = imageBin[int(centroid[1]-100):int(centroid[1]+100)\
+                                ,int(centroid[0]-100):int(centroid[0]+100)]
+        
+        # print(imgsegmented.shape)
+        # cv2.imshow("seg",imgsegmented*255)
+        # print(phi)
+        imgrot = ndimage.rotate(imgsegmented,phi*180/math.pi, reshape = False)
+        # cv2.imshow("rot",imgrot*255)
         newmoments = measure.moments(imgrot)
         cm03 = newmoments[0,3] \
                -3*newmoments[0,2]*newmoments[0,1]/newmoments[0,0]\
@@ -266,9 +271,3 @@ def getRobotPos(imageBin, verbose = 0):
     return pos,valid
     
     
-
-def rotate_image(image, angle):
-  image_center = tuple(np.array(image.shape[1::-1]) / 2)
-  rot_mat = cv2.getRotationMatrix2D(image_center, angle, 1.0)
-  result = cv2.warpAffine(image, rot_mat, image.shape[1::-1], flags=cv2.INTER_LINEAR)
-  return result
