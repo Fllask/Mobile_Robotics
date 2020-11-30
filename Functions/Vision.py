@@ -277,7 +277,7 @@ def getRobotPos(imageBin, verbose = 0):
         #cv2.imshow("seg",imgsegmented*255)
         # print(phi)
         imgrot = ndimage.rotate(imgsegmented,phi*180/math.pi, reshape = False)
-        cv2.imshow("rot",imageBin*255)
+        #cv2.imshow("rot",imageBin*255)
         newmoments = measure.moments(imgrot)
         cm03 = newmoments[0,3] \
                -3*newmoments[0,2]*newmoments[0,1]/newmoments[0,0]\
