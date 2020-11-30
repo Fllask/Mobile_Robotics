@@ -21,14 +21,14 @@ import numpy as np
 import math
 import copy
 
-from Functions.Thymio import Thymio
+from Thymio import Thymio
 
 #these are our modules
-from Functions.Utilities import Utilities
-from Functions.Global import Global
-import Functions.Vision as v
-from Functions.Robot import Robot
-from Functions.Filtering import Filtering
+from Utilities import Utilities
+from Global import Global
+import Vision as v
+from Robot import Robot
+from Filtering import Filtering
 # import Robot as r
 
 """ 
@@ -53,7 +53,7 @@ class ComputeVision():
     """ Image Loading Function """
     def loadImg(self):
         t0 = time.process_time()
-        input_path = 'sample_pictures/test_set_2/04.jpg'
+        input_path = '../sample_pictures/test_set_2/04.jpg'
         img = v.get_image(input_path)
         if self.verbose: 
             print("Image Query Time : "+str(time.process_time()-t0))
@@ -62,7 +62,7 @@ class ComputeVision():
     """ Displays processed data """
     def display(self):
         #projecting the image
-        tr_img = cv2.warpPerspective(self.img, self.vis.trans, (1000,1000))
+        tr_img = cv2.warpPerspective(self.img, self.vis.trans, (500,500))
 
         font = cv2.FONT_HERSHEY_SIMPLEX 
 
@@ -72,15 +72,15 @@ class ComputeVision():
         #plotting the gobal navigation path
         path = self.g.path
         for i in range(1,len(path)) :
-            cv2.line(tr_img,(int(path[i][0]*10),int(path[i][1]*10)),(int(path[i-1][0]*10),int(path[i-1][1]*10)),(0,0,0),thickness=2)
+            cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
 
-        cv2.circle(tr_img,(int(self.rob[0]*10),int(self.rob[1]*10)),60,(0,0,255),thickness=4)
+        cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
         tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
         ## plotting the goal
-        cv2.circle(tr_img,(int(self.stop[0]*10),int(self.stop[1]*10)),60,(255,0,0),thickness=4)
-        tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*10),int(self.stop[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+        cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
+        tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
 
         return tr_img
 
@@ -102,7 +102,7 @@ class ComputeVision():
         t0 = time.process_time()
         rbt = self.vis.returnDynamicCoordinates() ## getting robot coordinate
         self.rob = (rbt[0][0],rbt[0][1])
-        d['pos'] = self.rob
+        d['pos'] = [rbt[0][0],rbt[0][1],rbt[0][2]]
         if self.verbose:
             print("Initial Robot_Pos Estimation Time : "+str(time.process_time()-t0))
         
@@ -126,7 +126,8 @@ class ComputeVision():
             ## getting robot coordinates
             rbt = self.vis.returnDynamicCoordinates() 
             self.rob = (rbt[0][0],rbt[0][1])
-            d['pos'] = self.rob
+            d['pos'] = [rbt[0][0],rbt[0][1],rbt[0][2]]
+            print(d['pos'])
             
             ## computing path
             # self.g.start = self.rob
@@ -188,11 +189,12 @@ class RobotControl():
         if self.verbose:
             print("Starting main loop")
 
-       
+        while d['path'] == False or d['pos'] == False:
+           time.sleep(0.01)
 
         # Initialise robot class
 
-        Init_pos = np.array([0.,0.,0.])
+        Init_pos =d['pos']
         Ts = 0.1
         kp = 3    #0.15   #0.5
         ka = 35  #0.4    #0.8
@@ -200,7 +202,7 @@ class RobotControl():
         vTOm=31.5 #30.30
         wTOm=(200*180)/(80*math.pi) #130.5 #
 
-        global_path = d['path'] if d['path'] else [(0,0)]
+        global_path = d['path']
         thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
 
         # Initialise Filtering class
@@ -214,9 +216,11 @@ class RobotControl():
 
         while go:
             tps1 = time.monotonic()
+            print("globpath: " + d['pos'])
+
              # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-            global_path = d['path'] if d['path'] else [(0,0)]
+            # global_path = d['path']
             thym.global_path = global_path
             pos_cam = d['pos'] if d['pos'] else np.array[[0],[0]]
 
@@ -255,7 +259,7 @@ class RobotControl():
             # get our pos with the filter
             filter.compute_kalman(pos_cam,vect,self.th,Ts,False)
 
-            thym.compute_pba()
+            thym.compute_pba(verbose=True)
 
             tps2 = time.monotonic()
             Ts=tps2-tps1
@@ -287,7 +291,7 @@ if __name__ == '__main__':
             verbose = True
 
     try:
-        ctrl = RobotControl(verbose,"COM3")
+        ctrl = RobotControl(verbose,"/dev/cu.usbmodem141401")
     except:
         sys.exit(1)
 
