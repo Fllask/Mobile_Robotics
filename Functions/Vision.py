@@ -10,7 +10,7 @@ BIG = 1
 NONE = 2
 
 
-def getTransform(image,camera):
+def getTransform(image,camera,prevtrans):
     #return a geometric transform (usable with cv2.warpPerspective or with )
     image = preprocess(image)
     invalid = False
@@ -41,22 +41,22 @@ def getTransform(image,camera):
         print("YELLOW ERROR")
         invalid = True
     if invalid:
-        corners = np.array([[0,0],[624,0],[0,416],[624,416]], np.float32)
+        trans = prevtrans
     else:
         corners = np.array([TL,TR,BL,BR], np.float32)
-    trans = projection(corners)
+        trans = projection(corners)
     return trans,invalid
 
 class Vision:
     """ Handles vision """
     i = 12345
 
-    def __init__(self,image, camera = "ANDROID FLASK"):
+    def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3)):
         self.camera = camera
-        self.trans, invalid = getTransform(image, camera)
+        self.trans, self.invalid = getTransform(image, camera,prevtrans)
         self.setframe(image)    #generate self.frame
         self.map = createMap(self.frame,camera = camera)
-        if invalid:
+        if self.invalid:
             print("initialisation failed")
 
     def getMap(self, downscale = True):
@@ -123,7 +123,7 @@ class colorfilter:
             if color == "YELLOW":
                 self.band = np.array([[22,25],[169,255],[210,255]])
             if color == "BLUE":
-                self.band = np.array([[115,127],[73,255],[17,191]])
+                self.band = np.array([[115,127],[73,255],[9,191]])
             if color == "GREEN":
                  self.band = np.array([[41,67],[200,255],[36,255]])
             if color == "ROBOT":
@@ -160,8 +160,8 @@ class colorfilter:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((6,6)).astype("uint8"))
         elif self.morph == DEFAULT:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((7,7)).astype("uint8"))
-        elif self.morph == NONE:
-            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
+        # elif self.morph == NONE:
+        #     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
         return cv2.UMat(mask)
 
 def preprocess(img):

@@ -15,16 +15,23 @@ DISPLAY = True
 
 cap = cv2.VideoCapture(2)
 
-ret,frame = cap.read()
 #frame = cv2.imread('../sample_pictures/new color.jpg')
-vis = v.Vision(frame, "ANDROID FLASK")
-
-
+initfailed = True
+while(initfailed):
+    ret,frame = cap.read()
+    vis = v.Vision(frame, "ANDROID FLASK")
+    initfailed = vis.invalid
+    
+    if DISPLAY:
+        cv2.imshow("frame",frame)
+        cv2.waitKey(1)
+        
+        
 while (True):
     t0 = time.process_time()
     ret,frame = cap.read()
     img_cul = cv2.resize(frame,(624,416))
-
+    vis = v.Vision(frame, "ANDROID FLASK",prevtrans = vis.trans)
     vis.setframe(frame)
     rob,coordvalid = vis.returnDynamicCoordinates()
     if DISPLAY:
@@ -49,7 +56,7 @@ while (True):
         cv2.resizeWindow('internal map', 600,600)
         cv2.imshow('internal map', cv2.cvtColor(vis.frame,cv2.COLOR_HSV2BGR))
     t1 = time.process_time()
-    #print(t1-t0)
+    print(t1-t0)
     if cv2.waitKey(1) & 0XFF == ord('q'):
         break 
 
