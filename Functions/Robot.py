@@ -101,9 +101,9 @@ class Robot:
         
         ML=vM+wM
         MR=vM-wM
-        ML = ML if ML >= 0 else 2 ** 16 + ML
+        ML = ML if ML >= 0 else 2 ** 16 - 1 + ML
         ML = int(ML)
-        MR = MR if MR >= 0 else 2 ** 16 + MR
+        MR = MR if MR >= 0 else 2 ** 16 - 1 + MR
         MR = int(MR)
 
         self.ML=ML

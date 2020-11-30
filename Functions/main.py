@@ -72,15 +72,15 @@ class ComputeVision():
         #plotting the gobal navigation path
         path = self.g.path
         for i in range(1,len(path)) :
-            cv2.line(tr_img,(int(path[i][0]*10),int(path[i][1]*10)),(int(path[i-1][0]*10),int(path[i-1][1]*10)),(0,0,0),thickness=2)
+            cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
 
-        cv2.circle(tr_img,(int(self.rob[0]*10),int(self.rob[1]*10)),60,(0,0,255),thickness=4)
+        cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
         tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
         ## plotting the goal
-        cv2.circle(tr_img,(int(self.stop[0]*10),int(self.stop[1]*10)),60,(255,0,0),thickness=4)
-        tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*10),int(self.stop[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+        cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
+        tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
 
         return tr_img
 
@@ -102,7 +102,7 @@ class ComputeVision():
         t0 = time.process_time()
         rbt = self.vis.returnDynamicCoordinates() ## getting robot coordinate
         self.rob = (rbt[0][0],rbt[0][1])
-        d['pos'] = self.rob
+        d['pos'] = [rbt[0][0],rbt[0][1],rbt[0][2]]
         if self.verbose:
             print("Initial Robot_Pos Estimation Time : "+str(time.process_time()-t0))
         
@@ -126,7 +126,8 @@ class ComputeVision():
             ## getting robot coordinates
             rbt = self.vis.returnDynamicCoordinates() 
             self.rob = (rbt[0][0],rbt[0][1])
-            d['pos'] = self.rob
+            d['pos'] = [rbt[0][0],rbt[0][1],rbt[0][2]]
+            print(d['pos'])
             
             ## computing path
             # self.g.start = self.rob
@@ -193,7 +194,7 @@ class RobotControl():
 
         # Initialise robot class
 
-        Init_pos = np.array([d['pos'][0],d['pos'][1],-math.pi/2])
+        Init_pos =d['pos']
         Ts = 0.1
         kp = 3    #0.15   #0.5
         ka = 35  #0.4    #0.8
@@ -215,7 +216,8 @@ class RobotControl():
 
         while go:
             tps1 = time.monotonic()
-            print("globpath: " + str(global_path))
+            print("globpath: " + d['pos'])
+
              # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
             # global_path = d['path']
