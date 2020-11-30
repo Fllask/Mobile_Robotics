@@ -1,4 +1,4 @@
-from Functions.Thymio import Thymio
+from Thymio import Thymio
 import os
 import sys
 import time
@@ -7,7 +7,7 @@ import math as m
 import pandas as pd
 import math as m
 import serial
-from Functions.Utilities import Utilities
+from Utilities import Utilities
 ut = Utilities()
 
 """ Developped by: Thomas """
@@ -37,12 +37,14 @@ class Robot:
     
     
     
-    def compute_pba(self):
+    def compute_pba(self,verbose = False):
         
         self.a=-self.Pos[2]+ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
         self.p=ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
         self.b=-self.Pos[2]-self.bref-self.a 
+        if verbose:
+            print("a : " + str(self.a) + " , b : " + str(self.b) + " , p : " + str(self.p)) 
         return self.b
 
     # assume alpha(0)is between -pi/2 and pi/2 and stays between those two values

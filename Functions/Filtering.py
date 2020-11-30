@@ -7,9 +7,9 @@ import serial
 import numpy as np
 import math as m
 
-from Functions.Thymio import Thymio
-from Functions.Timer import RepeatedTimer
-from Functions.Robot import Robot
+from Thymio import Thymio
+from Timer import RepeatedTimer
+from Robot import Robot
 
 
 class Filtering:
@@ -28,12 +28,13 @@ class Filtering:
         
     
     @staticmethod
-    def update(X_est,P_est_priori, zk, H, A, R):
+    def update(X_est,P_est_priori, zk, H, A, R,verbose=False):
 
         innovation = zk - np.dot(H,X_est)
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        print('K\n',K)
+        if verbose:
+            print('K\n',K)
         X_est = X_est + np.dot(K,innovation)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
         return X_est, P_est
