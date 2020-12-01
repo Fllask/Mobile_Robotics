@@ -74,7 +74,7 @@ class ComputeVision():
             cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
             tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
         ## plotting the goal
-        if not isinstance(self.rob,bool):
+        if not isinstance(self.stop,bool):
             cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
             tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
 
@@ -93,7 +93,10 @@ class ComputeVision():
         cap = cv2.VideoCapture(0)
 
         #get the first frame to test
+        
         ret, self.img = cap.read()
+        self.img =  cv2.resize(self.img,(624,416))
+
         if not ret:
             if self.verbose:
                 print("frame droped")
@@ -132,7 +135,7 @@ class ComputeVision():
         t0 = time.process_time()
         rbt_pos,ret = self.vis.returnDynamicCoordinates() ## getting robot coordinate
         
-        if type(rbt_pos) == "bool":
+        if isinstance(rbt_pos,bool):
             self.rob = False
         else:
             self.rob = tuple(rbt_pos[0:2])
@@ -169,7 +172,7 @@ class ComputeVision():
             
             ## getting robot coordinates
             rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
-            if isinstance(rbt_pos,bool):
+            if not isinstance(rbt_pos,bool):
                 self.rob = tuple(rbt_pos[0:2])
             else:
                 self.rob = False
@@ -179,13 +182,12 @@ class ComputeVision():
             ## displaying whatever was computed
             disp = self.display()
             cv2.imshow('frame',disp)
-            
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break      
 
             
-            if self.verbose:
-                print("Full Vision Loop : "+str(time.process_time()-t0))
+            #if self.verbose:
+                #print("Full Vision Loop : "+str(time.process_time()-t0))
             d['vtime']=str(time.process_time()-t0)
 
 
@@ -235,14 +237,22 @@ class RobotControl():
 
         # Initialise robot class
 
-        thym = Utilities.init_robot()
+        Init_pos = False
+        Ts = 0.1
+        kp = 3    #0.15   #0.5
+        ka = 35  #0.4    #0.8
+        kb = -8   #-0.07  #-0.2
+        vTOm=31.5 #30.30
+        wTOm=(200*180)/(80*math.pi) #130.5 #
+
+        # thym = Robot(False,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
 
         # Initialise Filtering class
 
-        filter = Utilities.init_filter()
+        # filter = Utilities.init_filter()
 
         init = False
-        go=1
+        go=False
 
         while go:
 
@@ -321,7 +331,7 @@ if __name__ == '__main__':
             verbose = True
 
     try:
-        ctrl = RobotControl(verbose,"COM3")
+        ctrl = RobotControl(verbose,"/dev/cu.usbmodem144101")
     except:
         sys.exit(1)
     

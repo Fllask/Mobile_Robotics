@@ -125,10 +125,9 @@ class Utilities:
         ka = 35  #0.4    #0.8
         kb = -8   #-0.07  #-0.2
         vTOm=31.5 #30.30
-        wTOm=(200*180)/(80*math.pi) #130.5 #
+        wTOm=(200*180)/(80*m.pi) #130.5 #
 
-        global_path = d['path']
-        thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
+        thym = Robot(False,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
         return thym
 
     def init_filter():
