@@ -55,9 +55,11 @@ class Vision:
         self.camera = camera
         self.trans, self.invalid = getTransform(image, camera,prevtrans)
         self.setframe(image)    #generate self.frame
-        self.map = createMap(self.frame,camera = camera)
         if self.invalid:
             print("initialisation failed")
+            self.map = np.array([[]])
+        else:
+            self.map = createMap(self.frame,camera = camera)
 
     def getMap(self, downscale = True):
         #return a map of polygons (numpy array of size (n.polygons, n.corners,1,2))
@@ -73,7 +75,7 @@ class Vision:
         self.frame = img_real
         
     
-    def returnDynamicCoordinates(self):
+    def returnDynamicCoordinates(self,display= 0):
         """ returns an object containing the coordinates of the robot (a 3d numpy vector) 
         as well as the end point coordinates (a 2d numpy vector) 
         OR False if the image is not exploitable"""
@@ -82,7 +84,11 @@ class Vision:
         '''
         filterob = colorfilter("ROBOT",self.camera)
         mask = filterob.get_mask(self.frame).get().astype(np.uint8)
-        pos,valid = getRobotPos(mask)
+        pos,valid = getRobotPos(mask,display = display)
+        
+        if ~valid:
+            pos = False
+        
         return pos,valid
     def returnDynamicAim(self):
         '''
@@ -94,8 +100,11 @@ class Vision:
         '''
         filteraim = colorfilter("FINISH",self.camera)
         mask = filterob.get_mask(self.frame)
-        finish = getCentroid(mask)
-        return finish/5
+        finish,invalid = getCentroid(mask)
+        finish /= 5.
+        if invalid:
+            finish = False
+        return finish,~invalid
     
 class colorfilter:
     def __init__(self, color, camera = "XT3"):
@@ -121,11 +130,11 @@ class colorfilter:
             if color == "RED":
                 self.band = np.array([[0,8],[180,255],[128,255]])
             if color == "YELLOW":
-                self.band = np.array([[22,25],[169,255],[210,255]])
+                self.band = np.array([[15,30],[169,255],[210,255]])
             if color == "BLUE":
                 self.band = np.array([[115,127],[73,255],[9,191]])
             if color == "GREEN":
-                 self.band = np.array([[41,67],[200,255],[36,255]])
+                 self.band = np.array([[41,67],[100,255],[20,255]])
             if color == "ROBOT":
                 self.band = np.array([[135,170],[75,255],[60,255]])
                 self.morph = NONE
@@ -168,8 +177,12 @@ def preprocess(img):
     imgsmall = cv2.resize(img,(624,416))
     imgsmooth = cv2.UMat(imgsmall)
     cv2.GaussianBlur(imgsmall,(5,5),0,dst = imgsmooth)
+    p2, p90 = np.percentile(imgsmooth, (2, 90))
+    # Contrast stretching, we keep the image intensity between 2% and 90%
+    imgsmooth = skimage.exposure.rescale_intensity(imgsmooth, in_range=(p2, p90))
+
     imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV).get().astype(np.uint8)
-    imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
+    #imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
     imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
     return cv2.UMat(imgHSV)
     
@@ -210,15 +223,6 @@ def createMap(img,R_ROBOT = 65,camera= "XT3"):
         
     return polygons
 
-def get_first_frame(input):
-    video = cv2.VideoCapture(input)
-    if(video.isOpened() == False):
-        print("Error opening video")
-
-    #get first frame for object recognition
-    video.set(1, 0)
-    ret, frame = video.read()
-    return frame
 def get_image(input):
     frame = cv2.imread(input) 
     #frame = cv2.VideoCapture(0).read()
@@ -247,7 +251,7 @@ def getCentroid(imageBin):
     return centroid,invalid
 
 
-def getRobotPos(imageBin, verbose = 0):
+def getRobotPos(imageBin, verbose = 0,display = 0):
     if type(imageBin) is cv2.UMat:
         imageBin = imageBin.get().astype(np.uint8)
     valid = True
@@ -277,7 +281,7 @@ def getRobotPos(imageBin, verbose = 0):
         #cv2.imshow("seg",imgsegmented*255)
         # print(phi)
         imgrot = ndimage.rotate(imgsegmented,phi*180/math.pi, reshape = False)
-        if verbose:
+        if display:
             cv2.imshow("mask",imageBin*255)
         newmoments = measure.moments(imgrot)
         cm03 = newmoments[0,3] \
