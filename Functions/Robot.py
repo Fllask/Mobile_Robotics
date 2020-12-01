@@ -22,7 +22,8 @@ class Robot:
         self.global_path=global_path
         self.Pos=InitPos   # x,y and theta
         self.node=0
-       
+        self.astolfi=1
+        self.go=1
         self.a=None
         self.b=None
         self.p=None
@@ -55,16 +56,19 @@ class Robot:
         return p_dot,a_dot,b_dot
     
     def compute_rotation(self,Ts):
-        if self.a>m.pi/2:
+        if self.a>0:
             w=0.3
-            self.Pos[2]=self.Pos[2]+self.Pos[2]*w*Ts
-            self.a=self.a-self.Pos[2]*w*Ts
+            self.Pos[2]=self.Pos[2]+w*Ts
+            self.a=self.a-w*Ts
         else:
             w=-0.3
-            self.Pos[2]=self.Pos[2]+self.Pos[2]*w*Ts
-            self.a=self.a-self.Pos[2]*w*Ts
+            self.Pos[2]=self.Pos[2]+w*Ts
+            self.a=self.a-w*Ts
         self.u[0]=0
         self.u[1]=w
+        if abs(self.a)< 0.1:
+            self.astolfi=1
+        
         return self.a
 
 
@@ -93,7 +97,8 @@ class Robot:
 
         vM=self.u[0]*self.vTOm
         wM=self.u[1]*self.wTOm
-
+        
+        
         if abs(wM)>500:
             print('ERROR wM')
         if abs(self.a)>m.pi/2:
@@ -136,17 +141,30 @@ class Robot:
 
 
     def thymio(self,Ts,th):
-        while True:
+        # converting x,y and theta in rho, beta and alpha (Astolfi controller)
+        self.compute_pba()
+        
+        if self.astolfi==1 : 
+            if abs(self.a)>m.pi/2:
+                # calculate rho, beta and alpha at time t+1(Astolfi controller)
+                self.astolfi=0
+                print('test works')
+            
+        if self.astolfi==1:
             self.compute_state_equation(Ts)
+            # convert rho, beta and alpha in x y and theta (need those parameters for the filter)
             self.compute_Pos()
-
+            # check if we are close to the next point in the global path and change the next goal in the astolfi controller if it is the case
             self.check()
-            self.compute_input()
-            self.run_on_thymio(th)
+            
 
-            time.sleep(Ts)
+        else : 
+            # if abs(alpha)>pi/2 we can't use astolfi and we first need to rotate the robot on itslef.
+            self.compute_rotation(Ts)
+            
 
-            if self.p<1 and self.node==len(self.global_path)-2:
-                th.set_var("motor.left.target", 0)
-                th.set_var("motor.right.target", 0)
+        # calculate the velocity and angular velocity and the value we need to give to the left and right motor
+        self.compute_input()
+        # give the value of the motor to the thymio 
+        self.run_on_thymio(th)
         return self.Pos[0]
