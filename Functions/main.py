@@ -63,8 +63,9 @@ class ComputeVision():
         
         #plotting the gobal navigation path
         path = self.g.path
-        for i in range(1,len(path)) :
-            cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
+        if path != False:
+            for i in range(1,len(path)) :
+                cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
         if not (self.rob == False):
@@ -325,7 +326,7 @@ if __name__ == '__main__':
 
 
     """ Parsing stdin """
-    verbose = True
+    verbose = False
     for i in range (1,len(sys.argv)):
         if sys.argv[i] == "v":
             print("Running Verbose Mode")
