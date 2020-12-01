@@ -1,7 +1,7 @@
 """ Developped by: Flask """
 import cv2 #read video and images
 import numpy as np
-from skimage import measure, morphology
+from skimage import measure, morphology,exposure
 from scipy import linalg, ndimage
 import math
 
@@ -86,7 +86,7 @@ class Vision:
         mask = filterob.get_mask(self.frame).get().astype(np.uint8)
         pos,valid = getRobotPos(mask,display = display)
         
-        if ~valid:
+        if  not valid:
             pos = False
         
         return pos,valid
@@ -104,7 +104,7 @@ class Vision:
         finish /= 5.
         if invalid:
             finish = False
-        return finish,~invalid
+        return finish, not invalid
     
 class colorfilter:
     def __init__(self, color, camera = "XT3"):
@@ -132,11 +132,11 @@ class colorfilter:
             if color == "YELLOW":
                 self.band = np.array([[15,30],[169,255],[210,255]])
             if color == "BLUE":
-                self.band = np.array([[115,127],[73,255],[9,191]])
+                self.band = np.array([[115,127],[73,255],[70,191]])
             if color == "GREEN":
-                 self.band = np.array([[41,67],[100,255],[20,255]])
+                 self.band = np.array([[41,67],[100,255],[70,255]])
             if color == "ROBOT":
-                self.band = np.array([[135,170],[75,255],[60,255]])
+                self.band = np.array([[135,170],[75,255],[70,255]])
                 self.morph = NONE
             if color == "BLACK":
                  self.band = np.array([[0,115],[0,255],[0,55]])
@@ -175,15 +175,15 @@ class colorfilter:
 
 def preprocess(img):
     imgsmall = cv2.resize(img,(624,416))
-    imgsmooth = cv2.UMat(imgsmall)
-    cv2.GaussianBlur(imgsmall,(5,5),0,dst = imgsmooth)
+    #imgsmooth = cv2.UMat(imgsmall)
+    imgsmooth = cv2.GaussianBlur(imgsmall,(5,5),0)
     p2, p90 = np.percentile(imgsmooth, (2, 90))
     # Contrast stretching, we keep the image intensity between 2% and 90%
-    imgsmooth = skimage.exposure.rescale_intensity(imgsmooth, in_range=(p2, p90))
+    imgsmooth = exposure.rescale_intensity(imgsmooth, in_range=(p2, p90))
 
-    imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV).get().astype(np.uint8)
+    imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV)#.get().astype(np.uint8)
     #imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
-    imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
+    #imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
     return cv2.UMat(imgHSV)
     
 def projection(corners):
