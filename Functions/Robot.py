@@ -7,7 +7,7 @@ import math as m
 import pandas as pd
 import math as m
 import serial
-from Utilities import Utilities
+from Functions.Utilities import Utilities
 ut = Utilities()
 
 """ Developped by: Thomas """
@@ -169,3 +169,30 @@ class Robot:
         # give the value of the motor to the thymio 
         self.run_on_thymio(th)
         return self.Pos[0]
+
+    def initialisation(self,global_path, pos_init) : 
+        self.state = 'INIT'
+
+        if global_path != False :
+            self.global_path = global_path
+        else :
+            return False
+        if pos_init != False :
+            self.pos_init = pos_init
+        else : 
+            return False
+
+        return True
+
+    def get_states(self) :
+
+        x=float(self.Pos[0])
+        y=float(self.Pos[1])
+        theta=float(self.Pos[2])
+
+        vL=int(self.ML) if self.ML<=500 else self.ML - 2** 16 
+        vR=int(self.MR) if self.MR<=500 else self.MR - 2** 16 
+    
+        vect=np.array([[x],[y],[theta],[vL],[vR]])
+
+        return vect

@@ -21,14 +21,14 @@ import numpy as np
 import math
 import copy
 
-from Thymio import Thymio
+from Functions.Thymio import Thymio
 
 #these are our modules
-from Utilities import Utilities
-from Global import Global
-import Vision as v
-from Robot import Robot
-from Filtering import Filtering
+from Functions.Utilities import Utilities
+from Functions.Global import Global
+import Functions.Vision as v
+from Functions.Robot import Robot
+from Functions.Filtering import Filtering
 # import Robot as r
 
 """ 
@@ -189,77 +189,53 @@ class RobotControl():
         if self.verbose:
             print("Starting main loop")
 
-        while d['path'] == False or d['pos'] == False:
-           time.sleep(0.01)
-
         # Initialise robot class
 
-        Init_pos =d['pos']
-        Ts = 0.1
-        kp = 3    #0.15   #0.5
-        ka = 35  #0.4    #0.8
-        kb = -8   #-0.07  #-0.2
-        vTOm=31.5 #30.30
-        wTOm=(200*180)/(80*math.pi) #130.5 #
-
-        global_path = d['path']
-        thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
+        thym = Utilities.init_robot()
 
         # Initialise Filtering class
-        Rvel = np.array([[1.53, 0.], [0.,1.53]])
-        Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
-        Rcam = np.array([[0.000001,0.,0.],[0.,0.000001,0.],[0.,0.,0.000001]])
-        Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
 
-        filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
+        filter = Utilities.init_filter()
+
+        init = False
         go=1
 
         while go:
+
             tps1 = time.monotonic()
-            print("globpath: " + d['pos'])
 
-             # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
+            ################################################################################
+            # Initialise robot with a verified global path and a verified initial position #
+            ################################################################################
 
-            # global_path = d['path']
-            thym.global_path = global_path
+            while not init : 
+                Robot.initialisation(sef,d['path'],d['pos'])
+
+            #########################################################################
+            # get the position of the robot given by the camera when it is possible #
+            #          if not possible set the updateWithCam bolean to False        # 
+            #########################################################################
+
             pos_cam = d['pos'] if d['pos'] else np.array[[0],[0]]
 
-            rt = time.process_time() - t0
-            t0 = time.process_time()
-            if int(round(time.process_time(),0)) > t:
-                t = int(round(time.process_time(),0))
-                nd = dict(d)
-                if self.verbose:
-                    print("control period : " + str(rt))
-                    print("vision period : "+d["vtime"])
-                    print("position of robot : "+str(nd['pos']))
+            # Enter the robot FSM once initialised correctly
 
+            thym.thymio(Ts,th)
 
-
-            thym.compute_state_equation(Ts)
-            thym.compute_Pos()
-            thym.check()
-            thym.compute_input()
-            thym.run_on_thymio(self.th)
 
             #[give : x,y,theta,vr,vl] to the filter : 
-            x=float(thym.Pos[0])
-            y=float(thym.Pos[1])
-            theta=float(thym.Pos[2])
-
-            vL=int(thym.ML) if thym.ML<=500 else thym.ML - 2** 16 
-            vR=int(thym.MR) if thym.MR<=500 else thym.MR - 2** 16 
-    
-            vect=np.array([[x],[y],[theta],[vL],[vR]])
+            
+            robot_states = thym.get_states()
 
             time.sleep(0.1)
     
             # get the measurements from the camera : 
 
             # get our pos with the filter
-            filter.compute_kalman(pos_cam,vect,self.th,Ts,False)
+            if thym.astolfi==1:
+                filter.compute_kalman(pos_cam,robot_states,self.th,Ts,False)
 
-            thym.compute_pba(verbose=True)
+            
 
             tps2 = time.monotonic()
             Ts=tps2-tps1
@@ -270,6 +246,17 @@ class RobotControl():
                 print('FININSH!!!!')
                 tfinal=time.monotonic()
                 go = 0
+
+
+            rt = time.process_time() - t0
+            t0 = time.process_time()
+            if int(round(time.process_time(),0)) > t:
+                t = int(round(time.process_time(),0))
+                nd = dict(d)
+                if self.verbose:
+                    print("control period : " + str(rt))
+                    print("vision period : "+d["vtime"])
+                    print("position of robot : "+str(nd['pos']))
 
             
 
@@ -290,7 +277,7 @@ if __name__ == '__main__':
             verbose = True
 
     try:
-        ctrl = RobotControl(verbose,"/dev/cu.usbmodem141401")
+        ctrl = RobotControl(verbose,"COM3")
     except:
         sys.exit(1)
 
