@@ -47,9 +47,13 @@ class Robot:
     def compute_pba(self,verbose = False):
         
         self.a=-self.Pos[2]+ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
+        self.a=(m.pi+self.a)%(2*m.pi)-m.pi
+        print('theta',self.Pos [2])
+        print('-beta ref',ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1]))
         self.p=ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
         self.b=-self.Pos[2]-self.bref-self.a 
+        print('a',self.a)
         if verbose:
             print("a : " + str(self.a) + " , b : " + str(self.b) + " , p : " + str(self.p)) 
         return self.b
@@ -70,6 +74,8 @@ class Robot:
             w=-0.3
             self.Pos[2]=self.Pos[2]+w*Ts
             self.a=self.a-w*Ts
+
+        self.Pos[2]=(m.pi+self.Pos[2])%(2*m.pi)-m.pi
         self.u[0]=0
         self.u[1]=w
         if abs(self.a)< 0.1:
@@ -119,7 +125,7 @@ class Robot:
         MR = int(MR)
 
         self.ML=ML
-        self.MR=MR+3
+        self.MR=MR
 
         
 
@@ -136,6 +142,7 @@ class Robot:
         self.Pos[0]=float(nextpos[0]-self.p*m.cos(self.b+self.bref))
         self.Pos[1]=float(nextpos[1]+self.p*m.sin(self.b+self.bref))
         self.Pos[2]= float(-(self.b+self.bref+self.a))
+        self.Pos[2]=(m.pi+self.Pos[2])%(2*m.pi)-m.pi
         return self.Pos[0]
 
     def check(self):
@@ -155,6 +162,7 @@ class Robot:
     #function used to turn left or right
     def compute_rot_local(self,Ts,w):
         self.Pos[2]=self.Pos[2]+w*Ts
+        self.Pos[2]=(m.pi+self.Pos[2])%(2*m.pi)-m.pi
         return self.Pos[2]
 
     #function use to check if we have a local obstacle
