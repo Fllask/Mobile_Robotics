@@ -33,28 +33,27 @@ while (True):
     t0 = time.process_time()
     ret,frame = cap.read()
     img_cul = cv2.resize(frame,(624,416))
-    #vis = v.Vision(frame, "ANDROID FLASK",prevtrans = vis.trans)
+    vis = v.Vision(frame, "ANDROID FLASK",prevtrans = vis.trans)
     vis.setframe(frame)
     rob,coordvalid = vis.returnDynamicCoordinates()
-    print(rob)
-    print(not(rob==False))
+
     if DISPLAY:
         cv2.imshow('frame',img_cul)
         img_real = cv2.warpPerspective(img_cul, vis.trans, (500,500))
         obstacles = vis.getMap(downscale = False)
-        cv2.drawContours(img_real, obstacles, -1, (0,255,0), 3)
-        for p in obstacles:
-            for corner in p:
-                cv2.circle(img_real, tuple(corner.reshape(2)), 5, (255,255,0), thickness=1, lineType=8, shift=0)
-        if not(rob==False):
+        if not isinstance(obstacles,bool):
+            cv2.drawContours(img_real, obstacles, -1, (0,255,0), 3)
+            for p in obstacles:
+                for corner in p:
+                    cv2.circle(img_real, tuple(corner.reshape(2)), 5, (255,255,0), thickness=1, lineType=8, shift=0)
+        if coordvalid:
             pt1 = (int(rob[0]*5), int(rob[1]*5))
             pt2 = (int(rob[0]*5+math.cos(rob[2])*50), int(rob[1]*5+math.sin(rob[2])*50))
 
             cv2.line(img_real,pt1,pt2,(128,128,0),thickness=3)
             cv2.circle(img_real,pt1,10,(128,128,0),thickness = 4)
 
-        cv2.namedWindow('map',cv2.WINDOW_NORMAL)
-        cv2.resizeWindow('map', 500,500)
+
         cv2.imshow('map', img_real)
         cv2.namedWindow('internal map',cv2.WINDOW_NORMAL)
         cv2.resizeWindow('internal map', 600,600)
