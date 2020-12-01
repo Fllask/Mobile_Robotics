@@ -1,7 +1,7 @@
 
-from Functions.Robot import Robot
-from Functions.Filtering import Filtering
-from Functions.Thymio import Thymio
+from Robot import Robot
+from Filtering import Filtering
+from Thymio import Thymio
 import os
 import sys
 import numpy as np
@@ -20,11 +20,11 @@ time.sleep(3) # To make sure the Thymio has had time to connect
 
 # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-global_path = [(0,0),(200,0)]
+global_path = [(100,100),(75,25),(50,50)]
 
 # Initialise robot class
 
-Init_pos = np.array([0.,0.,m.pi])
+Init_pos = np.array([100.,100.,0])
 Ts = 0.1
 kp = 3    #0.15   #0.5
 ka = 35  #0.4    #0.8
@@ -76,7 +76,7 @@ while thym.go:
 
     #theta_filter = X_filter[2]
     
-    
+    print(thym.state)
     tps2 = time.monotonic()
     Ts=tps2-tps1
 
