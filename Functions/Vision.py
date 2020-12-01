@@ -127,7 +127,7 @@ class colorfilter:
             if color == "GREEN":
                  self.band = np.array([[41,67],[200,255],[36,255]])
             if color == "ROBOT":
-                self.band = np.array([[151,171],[75,255],[60,255]])
+                self.band = np.array([[135,170],[75,255],[60,255]])
                 self.morph = NONE
             if color == "BLACK":
                  self.band = np.array([[0,115],[0,255],[0,55]])
@@ -160,8 +160,8 @@ class colorfilter:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((6,6)).astype("uint8"))
         elif self.morph == DEFAULT:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((7,7)).astype("uint8"))
-        # elif self.morph == NONE:
-        #     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
+        elif self.morph == NONE:
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
         return cv2.UMat(mask)
 
 def preprocess(img):
@@ -268,7 +268,7 @@ def getRobotPos(imageBin, verbose = 0):
         else:
             phi = math.atan(2*varxy/(varx-vary))/2 +(varx<vary)*math.pi/2
         if verbose:
-            print(phi)
+            print("phi(without correction): "+str(phi))
         #check direction
         imgsegmented = imageBin[int(centroid[1]-50):int(centroid[1]+50)\
                                 ,int(centroid[0]-50):int(centroid[0]+50)]
@@ -277,13 +277,18 @@ def getRobotPos(imageBin, verbose = 0):
         #cv2.imshow("seg",imgsegmented*255)
         # print(phi)
         imgrot = ndimage.rotate(imgsegmented,phi*180/math.pi, reshape = False)
-        #cv2.imshow("rot",imageBin*255)
+        if verbose:
+            cv2.imshow("mask",imageBin*255)
         newmoments = measure.moments(imgrot)
         cm03 = newmoments[0,3] \
                -3*newmoments[0,2]*newmoments[0,1]/newmoments[0,0]\
                +2*newmoments[0,1]**3/newmoments[0,0]**2
         if cm03 < 0:
             phi+=math.pi
+        
+        phi = (phi+math.pi)%(2*math.pi)-math.pi
+        if verbose:
+            print("phi (with correction):"+str(phi))
         pos = np.append(centroid,phi)
     else:
         print("invalide coord: no or not enough pixel")
