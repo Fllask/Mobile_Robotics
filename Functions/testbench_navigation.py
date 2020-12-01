@@ -64,19 +64,6 @@ while thym.go:
     elif thym.state == 'INIT' :
         thym.INIT(global_path,Init_pos)
     
-    # get the measurements from the camera : 
-
-    # get our pos with the filter
-    #if thym.state=='ASTOLFI': 
-    #    pos_cam=[0]
-    #    filter.compute_kalman(pos_cam,vect,th,Ts,False)
-    #    print('filer')
-    #Vl_filter = X_filter[3]
-    #Vr_filter = X_filter[4]
-
-    #theta_filter = X_filter[2]
-    
-    print(thym.state)
     tps2 = time.monotonic()
     Ts=tps2-tps1
 
