@@ -256,13 +256,6 @@ class RobotControl():
 
             tps1 = time.monotonic()
 
-            ################################################################################
-            # Initialise robot with a verified global path and a verified initial position #
-            ################################################################################
-
-            while not init : 
-                Robot.initialisation(sef,d['path'],d['pos'])
-
             #########################################################################
             # get the position of the robot given by the camera when it is possible #
             #          if not possible set the updateWithCam bolean to False        # 
@@ -270,24 +263,23 @@ class RobotControl():
 
             pos_cam = d['pos'] if d['pos'] else np.array[[0],[0]]
 
-            # Enter the robot FSM once initialised correctly
 
-            thym.thymio(Ts,th)
+            #########################################################################
+            #                                                                       #
+            #                           FSM of the Robot                            #
+            #                                                                       #
+            #########################################################################
+
+            if thym.state =='ASTOLFI' : 
+                thym.ASTOLFI(th,Ts, filter)
+            elif thym.state == 'TURN' :
+                thym.TURN(th,Ts)
+            elif thym.state == 'LOCAL' :
+                thym.LOCAL(th,Ts)
+            elif thym.state == 'INIT' :
+                thym.INIT(d['path'],d['pos'])
 
 
-            #[give : x,y,theta,vr,vl] to the filter : 
-            
-            robot_states = thym.get_states()
-
-            time.sleep(0.1)
-    
-            # get the measurements from the camera : 
-
-            # get our pos with the filter
-            if thym.astolfi==1:
-                filter.compute_kalman(pos_cam,robot_states,self.th,Ts,False)
-
-            
 
             tps2 = time.monotonic()
             Ts=tps2-tps1
