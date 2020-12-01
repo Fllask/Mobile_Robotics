@@ -63,25 +63,24 @@ class ComputeVision():
             cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
         
         #plotting the gobal navigation path
-        if not isinstance(self.vis.getMap(downscale=False),bool):
-            path = self.g.path
-            if path != False:
-                for i in range(1,len(path)) :
-                    cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
+        if not isinstance(self.path,bool):
+            path = self.path
+            for i in range(1,len(path)) :
+                cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
         if not isinstance(self.rob,bool):
             pt1 = (int(self.rob[0]*5), int(self.rob[1]*5))
             pt2 = (int(self.rob[0]*5+math.cos(self.rbt_pos[2])*50), int(self.rob[1]*5+math.sin(self.rbt_pos[2])*50))
 
-            cv2.circle(tr_img,(int(self.rbt_pos[0]*5),int(self.rbt_pos[1]*5)),30,(0,0,255),thickness=4)
-            cv2.line(tr_img,pt1,pt2,(0,0,255),thickness=3)
+            cv2.circle(tr_img,(int(self.rbt_pos[0]*5),int(self.rbt_pos[1]*5)),30,(0,0,255),thickness=2)
+            cv2.line(tr_img,pt1,pt2,(0,0,255),thickness=2)
 
-            tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*10),int(self.rbt_pos[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+            tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*5),int(self.rbt_pos[1]*5)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
         ## plotting the goal
         if not isinstance(self.stop,bool):
-            cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
-            tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+            cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),30,(255,0,0),thickness=2)
+            tr_img = cv2.putText(tr_img, 'goal : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
 
         return tr_img
         
@@ -127,8 +126,11 @@ class ComputeVision():
             print("Initial Mapping Time : " + str(time.process_time()-t0))
         
         #querying the aim coordinates
-        coordAim = False
-        self.stop = False
+        self.stop, ret = self.vis.returnDynamicAim()
+        self.stop = tuple(self.stop)
+        self.path = False
+
+
 
         # querying robot coordinates
         t0 = time.process_time()
@@ -148,16 +150,11 @@ class ComputeVision():
         t0 = time.process_time()
         self.obstacles = self.vis.getMap()
         d['map'] = self.obstacles
-        
+        self.pathComputed = False
         
         self.g = Global(self.obstacles,False,self.stop)
-        if isinstance(coordAim, bool) and isinstance(self.rbt_pos, bool) and isinstance(self.obstacles, bool):
-            self.g.start = self.rob
-            self.path = self.g.returnPath(self.obstacles,self.rob,coordAim)
-            d['path'] = self.path
-        else:
-            if self.verbose:
-                print("Robot not found")
+        
+            
                 
         if self.verbose:
             print("Initial Path Planning Time : "+str(time.process_time()-t0))
@@ -183,6 +180,17 @@ class ComputeVision():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break      
 
+            if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or self.pathComputed:
+                if self.verbose:
+                    print("No Path Computed")
+                    print("stopB->"+str(isinstance(self.stop,bool)))
+                    print("rbt_posB->"+str(isinstance(self.rbt_pos,bool)))
+                    print("obstaclesB->"+str(isinstance(self.obstacles,bool)))
+                    print("pathComputed->"+str(self.pathComputed))
+            else:
+                self.g.start = self.rob
+                self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
+                d['path'] = self.path
             
             #if self.verbose:
                 #print("Full Vision Loop : "+str(time.process_time()-t0))
@@ -312,6 +320,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
+    robotPort = "/dev/cu.usbmodem144101"
 
     """ Parsing stdin """
     verbose = False
@@ -321,7 +330,7 @@ if __name__ == '__main__':
             verbose = True
 
     try:
-        ctrl = RobotControl(verbose,"/dev/cu.usbmodem144101")
+        ctrl = RobotControl(verbose,robotPort)
     except:
         sys.exit(1)
     

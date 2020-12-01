@@ -1,4 +1,4 @@
-from Functions.Thymio import Thymio
+from Thymio import Thymio
 import os
 import sys
 import time

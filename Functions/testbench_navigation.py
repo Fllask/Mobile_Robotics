@@ -1,7 +1,7 @@
 
-from Functions.Robot import Robot
-from Functions.Filtering import Filtering
-from Functions.Thymio import Thymio
+from Robot import Robot
+from Filtering import Filtering
+from Thymio import Thymio
 import os
 import sys
 import numpy as np
