@@ -20,11 +20,11 @@ time.sleep(3) # To make sure the Thymio has had time to connect
 
 # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-global_path = [(0,0),(200,0)]
+global_path = [(100.,100.),(75.,25.),(50.,50.),(25.,45.),(0.,0.)]
 
 # Initialise robot class
 
-Init_pos = np.array([0.,0.,m.pi])
+Init_pos = np.array([100.,100.,0.])
 Ts = 0.1
 kp = 3    #0.15   #0.5
 ka = 35  #0.4    #0.8
@@ -63,19 +63,6 @@ while thym.go:
         thym.LOCAL(th,Ts)
     elif thym.state == 'INIT' :
         thym.INIT(global_path,Init_pos)
-    
-    # get the measurements from the camera : 
-
-    # get our pos with the filter
-    #if thym.state=='ASTOLFI': 
-    #    pos_cam=[0]
-    #    filter.compute_kalman(pos_cam,vect,th,Ts,False)
-    #    print('filer')
-    #Vl_filter = X_filter[3]
-    #Vr_filter = X_filter[4]
-
-    #theta_filter = X_filter[2]
-    
     
     tps2 = time.monotonic()
     Ts=tps2-tps1
