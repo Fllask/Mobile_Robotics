@@ -67,11 +67,11 @@ class ComputeVision():
             cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
-        if ~(self.rob == False):
+        if not (self.rob == False):
             cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
             tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
         ## plotting the goal
-        if ~(self.rob == False):
+        if not (self.rob == False):
             cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
             tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
 
@@ -86,10 +86,10 @@ class ComputeVision():
             print("Starting vision + global navigation main loop")
        
         #getting the camera input
-        cap = cv2.VideoCapture(2)
+        cap = cv2.VideoCapture(0)
         #get the first frame to test
         ret, self.img = cap.read()
-        if ~ret:
+        if not ret:
             if self.verbose:
                 print("frame droped")
                 
@@ -141,7 +141,7 @@ class ComputeVision():
         
         self.g = Global(self.obstacles,False,self.stop)
         
-        if ~(self.rob == False):
+        if not (self.rob == False):
             self.g.start = self.rob
             self.path = self.g.returnPath()
             d['path'] = self.g.path
@@ -161,7 +161,7 @@ class ComputeVision():
             
             ## getting robot coordinates
             rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
-            if ~(rbt_pos == False):
+            if not (rbt_pos == False):
                 self.rob = tuple(rbt_pos[0:2])
             else:
                 self.rob = False

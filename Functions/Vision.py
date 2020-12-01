@@ -1,7 +1,7 @@
 """ Developped by: Flask """
 import cv2 #read video and images
 import numpy as np
-from skimage import measure, morphology
+from skimage import measure, morphology, exposure
 from scipy import linalg, ndimage
 import math
 
@@ -99,7 +99,7 @@ class Vision:
                 
         '''
         filteraim = colorfilter("FINISH",self.camera)
-        mask = filterob.get_mask(self.frame)
+        mask = filteraim.get_mask(self.frame)
         finish,invalid = getCentroid(mask)
         finish /= 5.
         if invalid:
@@ -175,15 +175,15 @@ class colorfilter:
 
 def preprocess(img):
     imgsmall = cv2.resize(img,(624,416))
-    imgsmooth = cv2.UMat(imgsmall)
+    imgsmooth = np.copy(imgsmall)
     cv2.GaussianBlur(imgsmall,(5,5),0,dst = imgsmooth)
     p2, p90 = np.percentile(imgsmooth, (2, 90))
     # Contrast stretching, we keep the image intensity between 2% and 90%
-    imgsmooth = skimage.exposure.rescale_intensity(imgsmooth, in_range=(p2, p90))
+    imgsmooth = exposure.rescale_intensity(imgsmooth, in_range=(p2, p90))
 
-    imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV).get().astype(np.uint8)
+    imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV)#.get().astype(np.uint8)
     #imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
-    imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
+    #imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
     return cv2.UMat(imgHSV)
     
 def projection(corners):
@@ -224,8 +224,7 @@ def createMap(img,R_ROBOT = 65,camera= "XT3"):
     return polygons
 
 def get_image(input):
-    frame = cv2.imread(input) 
-    #frame = cv2.VideoCapture(0).read()
+    frame = cv2.imread(input)
     
     small_frame = cv2.resize(frame,(624,416))
     return cv2.UMat(small_frame)
