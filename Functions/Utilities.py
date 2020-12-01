@@ -117,7 +117,7 @@ class Utilities:
         dist=m.sqrt((Pos1[0]-Pos2[0])**2 + (Pos1[1]-Pos2[1])**2 )
         return dist
 
-    def init_robot():
+    def init_robot(self):
 
         Init_pos = False
         Ts = 0.1
@@ -130,7 +130,7 @@ class Utilities:
         thym = Robot(False,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
         return thym
 
-    def init_filter():
+    def init_filter(self,thym):
 
         Rvel = np.array([[1.53, 0.], [0.,1.53]])
         Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])

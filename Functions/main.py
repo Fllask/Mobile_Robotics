@@ -54,29 +54,33 @@ class ComputeVision():
     """ Displays processed data """
     def display(self):
         #projecting the image
-        tr_img = cv2.warpPerspective(self.img, self.vis.trans, (500,500))
+        tr_img =  cv2.cvtColor(self.vis.frame,cv2.COLOR_HSV2BGR)
 
         font = cv2.FONT_HERSHEY_SIMPLEX 
 
         #plotting the obstacles detected
-        if not isinstance(self.vis.getMap(downscale=False),(bool,list)):
+        if not isinstance(self.vis.getMap(downscale=False),(bool)):
             cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
         
         #plotting the gobal navigation path
-        if not isinstance(self.vis.getMap(downscale=False),bool):
-            path = self.g.path
-            if path != False:
-                for i in range(1,len(path)) :
-                    cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
+        if not isinstance(self.path,bool):
+            path = self.path
+            for i in range(1,len(path)) :
+                cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
         if not isinstance(self.rob,bool):
-            cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
-            tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+            pt1 = (int(self.rob[0]*5), int(self.rob[1]*5))
+            pt2 = (int(self.rob[0]*5+math.cos(self.rbt_pos[2])*50), int(self.rob[1]*5+math.sin(self.rbt_pos[2])*50))
+
+            cv2.circle(tr_img,(int(self.rbt_pos[0]*5),int(self.rbt_pos[1]*5)),30,(0,0,255),thickness=2)
+            cv2.line(tr_img,pt1,pt2,(0,0,255),thickness=2)
+
+            tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*5),int(self.rbt_pos[1]*5)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
         ## plotting the goal
         if not isinstance(self.stop,bool):
-            cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
-            tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+            cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),30,(255,0,0),thickness=2)
+            tr_img = cv2.putText(tr_img, 'goal : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
 
         return tr_img
         
@@ -103,6 +107,7 @@ class ComputeVision():
                 
          # initialization of the vision object
         t0 = time.process_time()
+        
         initfailed = True
         flag = self.verbose
         if self.verbose:
@@ -121,26 +126,22 @@ class ComputeVision():
             print("Initial Mapping Time : " + str(time.process_time()-t0))
         
         #querying the aim coordinates
-        coordAim, validcoord = self.vis.returnDynamicAim()
-        if coordAim != False:
-            self.stop = tuple(coordAim)
-        else:
-            #default aim coodinates
-            self.stop = False
-            
-            
-        
+        self.stop, ret = self.vis.returnDynamicAim()
+        self.stop = tuple(self.stop)
+        self.path = False
+
+
 
         # querying robot coordinates
         t0 = time.process_time()
-        rbt_pos,ret = self.vis.returnDynamicCoordinates() ## getting robot coordinate
+        self.rbt_pos,ret = self.vis.returnDynamicCoordinates() ## getting robot coordinate
         
-        if isinstance(rbt_pos,bool):
+        if isinstance(self.rbt_pos,bool):
             self.rob = False
         else:
-            self.rob = tuple(rbt_pos[0:2])
+            self.rob = tuple(self.rbt_pos[0:2])
             
-        d['pos'] = rbt_pos
+        d['pos'] = self.rbt_pos
         
         if self.verbose:
             print("Initial Robot_Pos Estimation Time : "+str(time.process_time()-t0))
@@ -149,35 +150,29 @@ class ComputeVision():
         t0 = time.process_time()
         self.obstacles = self.vis.getMap()
         d['map'] = self.obstacles
-        
+        self.pathComputed = False
         
         self.g = Global(self.obstacles,False,self.stop)
-        if isinstance(coordAim, bool) and isinstance(rbt_pos, bool) and isinstance(self.obstacles, bool):
-            self.g.start = self.rob
-            self.path = self.g.returnPath(self.obstacles,self.rob,coordAim)
-            d['path'] = self.path
-        else:
-            if self.verbose:
-                print("Robot not found")
+        
+            
                 
         if self.verbose:
             print("Initial Path Planning Time : "+str(time.process_time()-t0))
 
         while True: 
             t0 = time.process_time() #we time each loop to get an idea of performance
-
             # loading new image
             ret, self.img = cap.read()
             self.vis.setframe(self.img) 
             
             ## getting robot coordinates
-            rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
-            if not isinstance(rbt_pos,bool):
-                self.rob = tuple(rbt_pos[0:2])
+            self.rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
+            if not isinstance(self.rbt_pos,bool):
+                self.rob = tuple(self.rbt_pos[0:2])
             else:
                 self.rob = False
                 
-            d['pos'] = rbt_pos
+            d['pos'] = self.rbt_pos
 
             ## displaying whatever was computed
             disp = self.display()
@@ -185,6 +180,17 @@ class ComputeVision():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break      
 
+            if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or self.pathComputed:
+                if self.verbose:
+                    print("No Path Computed")
+                    print("stopB->"+str(isinstance(self.stop,bool)))
+                    print("rbt_posB->"+str(isinstance(self.rbt_pos,bool)))
+                    print("obstaclesB->"+str(isinstance(self.obstacles,bool)))
+                    print("pathComputed->"+str(self.pathComputed))
+            else:
+                self.g.start = self.rob
+                self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
+                d['path'] = self.path
             
             #if self.verbose:
                 #print("Full Vision Loop : "+str(time.process_time()-t0))
@@ -258,13 +264,6 @@ class RobotControl():
 
             tps1 = time.monotonic()
 
-            ################################################################################
-            # Initialise robot with a verified global path and a verified initial position #
-            ################################################################################
-
-            while not init : 
-                Robot.initialisation(sef,d['path'],d['pos'])
-
             #########################################################################
             # get the position of the robot given by the camera when it is possible #
             #          if not possible set the updateWithCam bolean to False        # 
@@ -272,24 +271,23 @@ class RobotControl():
 
             pos_cam = d['pos'] if d['pos'] else np.array[[0],[0]]
 
-            # Enter the robot FSM once initialised correctly
 
-            thym.thymio(Ts,th)
+            #########################################################################
+            #                                                                       #
+            #                           FSM of the Robot                            #
+            #                                                                       #
+            #########################################################################
+
+            if thym.state =='ASTOLFI' : 
+                thym.ASTOLFI(th,Ts, filter)
+            elif thym.state == 'TURN' :
+                thym.TURN(th,Ts)
+            elif thym.state == 'LOCAL' :
+                thym.LOCAL(th,Ts)
+            elif thym.state == 'INIT' :
+                thym.INIT(d['path'],d['pos'])
 
 
-            #[give : x,y,theta,vr,vl] to the filter : 
-            
-            robot_states = thym.get_states()
-
-            time.sleep(0.1)
-    
-            # get the measurements from the camera : 
-
-            # get our pos with the filter
-            if thym.astolfi==1:
-                filter.compute_kalman(pos_cam,robot_states,self.th,Ts,False)
-
-            
 
             tps2 = time.monotonic()
             Ts=tps2-tps1
@@ -322,6 +320,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
+    robotPort = "/dev/cu.usbmodem144101"
 
     """ Parsing stdin """
     verbose = False
@@ -331,7 +330,7 @@ if __name__ == '__main__':
             verbose = True
 
     try:
-        ctrl = RobotControl(verbose,"/dev/cu.usbmodem144101")
+        ctrl = RobotControl(verbose,robotPort)
     except:
         sys.exit(1)
     

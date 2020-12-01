@@ -13,7 +13,7 @@ import time
 DISPLAY = True
 
 
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(0)
 
 #frame = cv2.imread('../sample_pictures/new color.jpg')
 initfailed = True
