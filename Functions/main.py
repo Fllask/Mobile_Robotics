@@ -269,7 +269,6 @@ class RobotControl():
                 self.th.set_var("motor.right.target", 0)
                 print('FININSH!!!!')
                 tfinal=time.monotonic()
-                print('Final time in the robot\n',tfinal-tinit)
                 go = 0
 
             

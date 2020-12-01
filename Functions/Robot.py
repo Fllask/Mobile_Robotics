@@ -113,7 +113,8 @@ class Robot:
 
         self.ML=ML
         self.MR=MR+3
-
+        #print('ML',self.ML,'\t')
+        #print('MR',self.MR,'\n')
         return self.ML
 
     def run_on_thymio(self,th):
