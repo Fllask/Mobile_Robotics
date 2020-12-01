@@ -51,7 +51,7 @@ class Vision:
     """ Handles vision """
     i = 12345
 
-    def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3)):
+    def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3), verbose = False):
         self.camera = camera
         self.trans, self.invalid = getTransform(image, camera,prevtrans)
         self.setframe(image)    #generate self.frame
@@ -136,7 +136,7 @@ class colorfilter:
             if color == "GREEN":
                  self.band = np.array([[41,78],[100,255],[30,255]])
             if color == "ROBOT":
-                self.band = np.array([[135,170],[75,255],[70,255]])
+                self.band = np.array([[135,165],[75,255],[70,255]])
                 self.morph = NONE
             if color == "BLACK":
                  self.band = np.array([[0,179],[0,255],[0,30]])
@@ -169,8 +169,8 @@ class colorfilter:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((6,6)).astype("uint8"))
         elif self.morph == DEFAULT:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((7,7)).astype("uint8"))
-        # elif self.morph == NONE:
-        #     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
+        elif self.morph == NONE:
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
         return cv2.UMat(mask)
 
 def preprocess(img):
