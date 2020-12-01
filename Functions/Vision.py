@@ -226,13 +226,6 @@ def createMap(img,R_ROBOT = 65,camera= "XT3"):
         
     return polygons
 
-def get_image(input):
-    frame = cv2.imread(input)
-    
-    small_frame = cv2.resize(frame,(624,416))
-    return cv2.UMat(small_frame)
-
-
 
 def getCentroid(imageBin):
     invalid = False

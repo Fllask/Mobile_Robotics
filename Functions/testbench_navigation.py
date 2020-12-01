@@ -20,7 +20,7 @@ time.sleep(3) # To make sure the Thymio has had time to connect
 
 # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-global_path = [(0,0),(40,0),(0.,1)]
+global_path = [(0,0),(200,0)]
 
 # Initialise robot class
 
@@ -53,9 +53,21 @@ thym.go=1
 
 while thym.go:
     tps1 = time.monotonic()
-
-    thym.thymio(Ts,th)
     
+    if thym.state=='ASTOLFI':
+        thym.check_localobstacle(th)
+    
+    if thym.state=='LOCAL':
+        thym.localavoidance(Ts,th)
+    else:
+        thym.thymio(Ts,th)
+    
+    print('POS',thym.Pos)
+    # calculate the velocity and angular velocity and the value we need to give to the left and right motor
+    thym.compute_input()
+    # give the value of the motor to the thymio 
+    thym.run_on_thymio(th)
+
     #[give : x,y,theta,vr,vl] to the filter : 
     x=float(thym.Pos[0])
     y=float(thym.Pos[1])
@@ -73,20 +85,22 @@ while thym.go:
     # get the measurements from the camera : 
 
     # get our pos with the filter
-    if thym.astolfi==1: 
+    if thym.state=='ASTOLFI': 
         pos_cam=[0]
         filter.compute_kalman(pos_cam,vect,th,Ts,False)
-
+        print('filer')
     #Vl_filter = X_filter[3]
     #Vr_filter = X_filter[4]
 
     #theta_filter = X_filter[2]
-
+    
     
     tps2 = time.monotonic()
     Ts=tps2-tps1
 
-    
+    #condition a enlever juste pour test
+    if thym.state=='WAIT':
+        thym.go=0
 
     # check if we arrive at the goal 
     if thym.p<3 and thym.node==len(thym.global_path)-2:

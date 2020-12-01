@@ -116,3 +116,28 @@ class Utilities:
     def compute_distance(self,Pos1,Pos2):
         dist=m.sqrt((Pos1[0]-Pos2[0])**2 + (Pos1[1]-Pos2[1])**2 )
         return dist
+
+    def init_robot():
+
+        Init_pos = False
+        Ts = 0.1
+        kp = 3    #0.15   #0.5
+        ka = 35  #0.4    #0.8
+        kb = -8   #-0.07  #-0.2
+        vTOm=31.5 #30.30
+        wTOm=(200*180)/(80*math.pi) #130.5 #
+
+        global_path = d['path']
+        thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
+        return thym
+
+    def init_filter():
+
+        Rvel = np.array([[1.53, 0.], [0.,1.53]])
+        Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
+        Rcam = np.array([[0.000001,0.,0.],[0.,0.000001,0.],[0.,0.,0.000001]])
+        Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
+
+        filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
+
+        return filter
