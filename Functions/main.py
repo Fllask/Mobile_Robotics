@@ -54,12 +54,12 @@ class ComputeVision():
     """ Displays processed data """
     def display(self):
         #projecting the image
-        tr_img = cv2.warpPerspective(self.img, self.vis.trans, (500,500))
+        tr_img =  cv2.cvtColor(self.vis.frame,cv2.COLOR_HSV2BGR)
 
         font = cv2.FONT_HERSHEY_SIMPLEX 
 
         #plotting the obstacles detected
-        if not isinstance(self.vis.getMap(downscale=False),(bool,list)):
+        if not isinstance(self.vis.getMap(downscale=False),(bool)):
             cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
         
         #plotting the gobal navigation path
@@ -71,8 +71,13 @@ class ComputeVision():
         
         ## plotting the robot's position
         if not isinstance(self.rob,bool):
-            cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
-            tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+            pt1 = (int(self.rob[0]*5), int(self.rob[1]*5))
+            pt2 = (int(self.rob[0]*5+math.cos(self.rbt_pos[2])*50), int(self.rob[1]*5+math.sin(self.rbt_pos[2])*50))
+
+            cv2.circle(tr_img,(int(self.rbt_pos[0]*5),int(self.rbt_pos[1]*5)),30,(0,0,255),thickness=4)
+            cv2.line(tr_img,pt1,pt2,(0,0,255),thickness=3)
+
+            tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*10),int(self.rbt_pos[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
         ## plotting the goal
         if not isinstance(self.stop,bool):
             cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
@@ -103,6 +108,7 @@ class ComputeVision():
                 
          # initialization of the vision object
         t0 = time.process_time()
+        
         initfailed = True
         flag = self.verbose
         if self.verbose:
@@ -121,26 +127,19 @@ class ComputeVision():
             print("Initial Mapping Time : " + str(time.process_time()-t0))
         
         #querying the aim coordinates
-        coordAim, validcoord = self.vis.returnDynamicAim()
-        if coordAim != False:
-            self.stop = tuple(coordAim)
-        else:
-            #default aim coodinates
-            self.stop = False
-            
-            
-        
+        coordAim = False
+        self.stop = False
 
         # querying robot coordinates
         t0 = time.process_time()
-        rbt_pos,ret = self.vis.returnDynamicCoordinates() ## getting robot coordinate
+        self.rbt_pos,ret = self.vis.returnDynamicCoordinates() ## getting robot coordinate
         
-        if isinstance(rbt_pos,bool):
+        if isinstance(self.rbt_pos,bool):
             self.rob = False
         else:
-            self.rob = tuple(rbt_pos[0:2])
+            self.rob = tuple(self.rbt_pos[0:2])
             
-        d['pos'] = rbt_pos
+        d['pos'] = self.rbt_pos
         
         if self.verbose:
             print("Initial Robot_Pos Estimation Time : "+str(time.process_time()-t0))
@@ -152,7 +151,7 @@ class ComputeVision():
         
         
         self.g = Global(self.obstacles,False,self.stop)
-        if isinstance(coordAim, bool) and isinstance(rbt_pos, bool) and isinstance(self.obstacles, bool):
+        if isinstance(coordAim, bool) and isinstance(self.rbt_pos, bool) and isinstance(self.obstacles, bool):
             self.g.start = self.rob
             self.path = self.g.returnPath(self.obstacles,self.rob,coordAim)
             d['path'] = self.path
@@ -165,19 +164,18 @@ class ComputeVision():
 
         while True: 
             t0 = time.process_time() #we time each loop to get an idea of performance
-
             # loading new image
             ret, self.img = cap.read()
             self.vis.setframe(self.img) 
             
             ## getting robot coordinates
-            rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
-            if not isinstance(rbt_pos,bool):
-                self.rob = tuple(rbt_pos[0:2])
+            self.rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
+            if not isinstance(self.rbt_pos,bool):
+                self.rob = tuple(self.rbt_pos[0:2])
             else:
                 self.rob = False
                 
-            d['pos'] = rbt_pos
+            d['pos'] = self.rbt_pos
 
             ## displaying whatever was computed
             disp = self.display()
