@@ -10,7 +10,7 @@ BIG = 1
 NONE = 2
 
 
-def getTransform(image,camera,prevtrans):
+def getTransform(image,camera,prevtrans,verbose = False):
     #return a geometric transform (usable with cv2.warpPerspective or with )
     image = preprocess(image)
     invalid = False
@@ -21,23 +21,23 @@ def getTransform(image,camera,prevtrans):
     
     maskr= filr.get_mask(image)
     BL,fr = getCentroid(maskr)
-    if fr:
+    if fr and verbose:
         invalid = True
         print("RED ERROR")
     maskg= filg.get_mask(image)
     TL,fg = getCentroid(maskg)
-    if fg:
+    if fg and verbose:
         print("GREEN ERROR")
 
         invalid = True
     maskb= filb.get_mask(image)
     BR,fb = getCentroid(maskb)
-    if fb:
+    if fb and verbose:
         print("BLUE ERROR")
         invalid = True
     masky= fily.get_mask(image)
     TR,fy = getCentroid(masky)
-    if fy:
+    if fy and verbose:
         print("YELLOW ERROR")
         invalid = True
     if invalid:
@@ -51,13 +51,15 @@ class Vision:
     """ Handles vision """
     i = 12345
 
-    def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3)):
+    def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3),verbose = False):
         self.camera = camera
-        self.trans, self.invalid = getTransform(image, camera,prevtrans)
+        self.trans, self.invalid = getTransform(image, camera,prevtrans,verbose)
         self.setframe(image)    #generate self.frame
+        
         if self.invalid:
-            print("initialisation failed")
-            self.map = np.array([[]])
+            if verbose:
+                print("initialisation failed")
+            self.map = False
         else:
             self.map = createMap(self.frame,camera = camera)
 
@@ -67,7 +69,7 @@ class Vision:
         if downscale:
             return np.array([np.array(el).astype(float)/5 for el in self.map])
         else:
-            return self.map
+            return [[]]
 
     def setframe(self, imgraw):
         img_prep = preprocess(imgraw)
@@ -135,7 +137,7 @@ class colorfilter:
             if color == "BLUE":
                 self.band = np.array([[115,127],[73,255],[70,191]])
             if color == "GREEN":
-                 self.band = np.array([[41,67],[100,255],[70,255]])
+                 self.band = np.array([[45,76],[100,255],[37,255]])
             if color == "ROBOT":
                 self.band = np.array([[135,170],[75,255],[70,255]])
                 self.morph = NONE
@@ -264,7 +266,8 @@ def getRobotPos(imageBin, verbose = 0,display = 0):
         
         #check the variance of the image
         if max(varx,vary)>2*imageBin.size**0.5:
-            print("invalide coord:noise")
+            if verbose:
+                print("invalid coord:noise")
             valid = False
         #get the angle
         if abs(varx-vary)<0.0001:
@@ -295,7 +298,8 @@ def getRobotPos(imageBin, verbose = 0,display = 0):
             print("phi (with correction):"+str(phi))
         pos = np.append(centroid,phi)
     else:
-        print("invalide coord: no or not enough pixel")
+        if verbose:
+            print("invalid coord: no or not enough pixel")
         valid = False
         pos = np.array([0,0,0])
         

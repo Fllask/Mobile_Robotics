@@ -59,20 +59,22 @@ class ComputeVision():
         font = cv2.FONT_HERSHEY_SIMPLEX 
 
         #plotting the obstacles detected
-        cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
+        if not isinstance(self.vis.getMap(downscale=False),(bool,list)):
+            cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
         
         #plotting the gobal navigation path
-        path = self.g.path
-        if path != False:
-            for i in range(1,len(path)) :
-                cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
+        if not isinstance(self.vis.getMap(downscale=False),bool):
+            path = self.g.path
+            if path != False:
+                for i in range(1,len(path)) :
+                    cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
-        if not (self.rob == False):
+        if not isinstance(self.rob,bool):
             cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
             tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
         ## plotting the goal
-        if not (self.rob == False):
+        if not isinstance(self.rob,bool):
             cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
             tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
 
@@ -81,13 +83,15 @@ class ComputeVision():
     
         
         
-    """ Main loop for vision """
+    """ Main vision loop """
     def mainLoop(self,d):
+
         if self.verbose:
             print("Starting vision + global navigation main loop")
        
         #getting the camera input
         cap = cv2.VideoCapture(0)
+
         #get the first frame to test
         ret, self.img = cap.read()
         if not ret:
@@ -97,25 +101,29 @@ class ComputeVision():
          # initialization of the vision object
         t0 = time.process_time()
         initfailed = True
+        flag = self.verbose
+        if self.verbose:
+            print("initializing vision")
+
         while(initfailed):
             ret,frame = cap.read()
-            self.vis = v.Vision(frame, "ANDROID FLASK")
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag)
             initfailed = self.vis.invalid
-            cv2.imshow("frame",frame)
-            cv2.waitKey(1)
+            flag = False
         
-        cv2.destroyWindow("frame")
+        if self.verbose:
+            print("Vision Init Success")
+        
         if self.verbose:
             print("Initial Mapping Time : " + str(time.process_time()-t0))
-            
-            
+        
         #querying the aim coordinates
         coordAim, validcoord = self.vis.returnDynamicAim()
-        if validcoord:
+        if coordAim != False:
             self.stop = tuple(coordAim)
         else:
             #default aim coodinates
-            self.stop = (95.,5.)
+            self.stop = False
             
             
         
@@ -124,7 +132,7 @@ class ComputeVision():
         t0 = time.process_time()
         rbt_pos,ret = self.vis.returnDynamicCoordinates() ## getting robot coordinate
         
-        if rbt_pos == False:
+        if type(rbt_pos) == "bool":
             self.rob = False
         else:
             self.rob = tuple(rbt_pos[0:2])
@@ -141,11 +149,10 @@ class ComputeVision():
         
         
         self.g = Global(self.obstacles,False,self.stop)
-        
-        if not (self.rob == False):
+        if isinstance(coordAim, bool) and isinstance(rbt_pos, bool) and isinstance(self.obstacles, bool):
             self.g.start = self.rob
-            self.path = self.g.returnPath()
-            d['path'] = self.g.path
+            self.path = self.g.returnPath(self.obstacles,self.rob,coordAim)
+            d['path'] = self.path
         else:
             if self.verbose:
                 print("Robot not found")
@@ -162,18 +169,12 @@ class ComputeVision():
             
             ## getting robot coordinates
             rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
-            if not (rbt_pos == False):
+            if isinstance(rbt_pos,bool):
                 self.rob = tuple(rbt_pos[0:2])
             else:
                 self.rob = False
                 
             d['pos'] = rbt_pos
-            if self.verbose:
-                print(d['pos'])
-            
-            ## computing path
-            # self.g.start = self.rob
-            # self.path = self.g.plotPath(plotGraph=False,plotMap=False)
 
             ## displaying whatever was computed
             disp = self.display()
@@ -347,7 +348,7 @@ if __name__ == '__main__':
     d['goal'] = False
     d['vtime'] = "0"
 
-    cmptVis = ComputeVision(False)
+    cmptVis = ComputeVision(verbose)
 
     cmptVis.run(d)
     ctrl.run(d)
