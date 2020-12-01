@@ -1,7 +1,7 @@
 
-from Robot import Robot
-from Filtering import Filtering
-from Thymio import Thymio
+from Functions.Robot import Robot
+from Functions.Filtering import Filtering
+from Functions.Thymio import Thymio
 import os
 import sys
 import numpy as np
@@ -24,7 +24,7 @@ global_path = [(0,0),(200,0)]
 
 # Initialise robot class
 
-Init_pos = np.array([0.,0.,0.])
+Init_pos = np.array([0.,0.,m.pi])
 Ts = 0.1
 kp = 3    #0.15   #0.5
 ka = 35  #0.4    #0.8
@@ -50,45 +50,27 @@ thym.go=1
 
 
 
-
+pos_cam=False
 while thym.go:
     tps1 = time.monotonic()
-    
-    if thym.state=='ASTOLFI':
-        thym.check_localobstacle(th)
-    
-    if thym.state=='LOCAL':
-        thym.localavoidance(Ts,th)
-    else:
-        thym.thymio(Ts,th)
-    
-    print('POS',thym.Pos)
-    # calculate the velocity and angular velocity and the value we need to give to the left and right motor
-    thym.compute_input()
-    # give the value of the motor to the thymio 
-    thym.run_on_thymio(th)
-
-    #[give : x,y,theta,vr,vl] to the filter : 
-    x=float(thym.Pos[0])
-    y=float(thym.Pos[1])
-    theta=float(thym.Pos[2])
-    vL=int(thym.ML) if thym.ML<=500 else thym.ML - 2** 16 
-    vR=int(thym.MR) if thym.MR<=500 else thym.MR - 2** 16 
-    
-    vect=np.array([[x],[y],[theta],[vL],[vR]])
 
 
-    # sleep 0.1 second :
-   
-    time.sleep(0.1)
+    if thym.state =='ASTOLFI' : 
+        thym.ASTOLFI(th,Ts, filter,pos_cam)
+    elif thym.state == 'TURN' :
+        thym.TURN(th,Ts)
+    elif thym.state == 'LOCAL' :
+        thym.LOCAL(th,Ts)
+    elif thym.state == 'INIT' :
+        thym.INIT(global_path,Init_pos)
     
     # get the measurements from the camera : 
 
     # get our pos with the filter
-    if thym.state=='ASTOLFI': 
-        pos_cam=[0]
-        filter.compute_kalman(pos_cam,vect,th,Ts,False)
-        print('filer')
+    #if thym.state=='ASTOLFI': 
+    #    pos_cam=[0]
+    #    filter.compute_kalman(pos_cam,vect,th,Ts,False)
+    #    print('filer')
     #Vl_filter = X_filter[3]
     #Vr_filter = X_filter[4]
 
@@ -97,10 +79,6 @@ while thym.go:
     
     tps2 = time.monotonic()
     Ts=tps2-tps1
-
-    #condition a enlever juste pour test
-    if thym.state=='WAIT':
-        thym.go=0
 
     # check if we arrive at the goal 
     if thym.p<3 and thym.node==len(thym.global_path)-2:
