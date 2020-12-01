@@ -50,15 +50,7 @@ class ComputeVision():
     def join(self):
         self.mainLoopProcess.join()
 
-    """ Image Loading Function """
-    def loadImg(self):
-        t0 = time.process_time()
-        input_path = '../sample_pictures/test_set_2/04.jpg'
-        img = v.get_image(input_path)
-        if self.verbose: 
-            print("Image Query Time : "+str(time.process_time()-t0))
-        return img
-
+   
     """ Displays processed data """
     def display(self):
         #projecting the image
@@ -68,41 +60,76 @@ class ComputeVision():
 
         #plotting the obstacles detected
         cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
-
+        
         #plotting the gobal navigation path
         path = self.g.path
         for i in range(1,len(path)) :
             cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
-
-        cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
-        tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+        if ~(self.rob == False):
+            cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
+            tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
         ## plotting the goal
-        cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
-        tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
+        if ~(self.rob == False):
+            cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
+            tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
 
         return tr_img
-
+        
+    
+        
         
     """ Main loop for vision """
     def mainLoop(self,d):
         if self.verbose:
             print("Starting vision + global navigation main loop")
-        # initialization of the vision object
-        self.img = self.loadImg()
+       
+        #getting the camera input
+        cap = cv2.VideoCapture(2)
+        #get the first frame to test
+        ret, self.img = cap.read()
+        if ~ret:
+            if self.verbose:
+                print("frame droped")
+                
+         # initialization of the vision object
         t0 = time.process_time()
-        self.vis = v.Vision(self.img)
-
-        self.stop = (5.,5.)
+        initfailed = True
+        while(initfailed):
+            ret,frame = cap.read()
+            self.vis = v.Vision(frame, "ANDROID FLASK")
+            initfailed = self.vis.invalid
+            cv2.imshow("frame",frame)
+            cv2.waitKey(1)
+        
+        cv2.destroyWindow("frame")
         if self.verbose:
             print("Initial Mapping Time : " + str(time.process_time()-t0))
+            
+            
+        #querying the aim coordinates
+        coordAim, validcoord = self.vis.returnDynamicAim()
+        if validcoord:
+            self.stop = tuple(coordAim)
+        else:
+            #default aim coodinates
+            self.stop = (95.,5.)
+            
+            
+        
 
         # querying robot coordinates
         t0 = time.process_time()
-        rbt = self.vis.returnDynamicCoordinates() ## getting robot coordinate
-        self.rob = (rbt[0][0],rbt[0][1])
-        d['pos'] = [rbt[0][0],rbt[0][1],rbt[0][2]]
+        rbt_pos,ret = self.vis.returnDynamicCoordinates() ## getting robot coordinate
+        
+        if rbt_pos == False:
+            self.rob = False
+        else:
+            self.rob = tuple(rbt_pos[0:2])
+            
+        d['pos'] = rbt_pos
+        
         if self.verbose:
             print("Initial Robot_Pos Estimation Time : "+str(time.process_time()-t0))
         
@@ -110,9 +137,18 @@ class ComputeVision():
         t0 = time.process_time()
         self.obstacles = self.vis.getMap()
         d['map'] = self.obstacles
-        self.g = Global(self.obstacles,(float(self.rob[0]),float(self.rob[1])),self.stop)
-        self.path = self.g.plotPath(plotGraph=False,plotMap=False)
-        d['path'] = self.path
+        
+        
+        self.g = Global(self.obstacles,False,self.stop)
+        
+        if ~(self.rob == False):
+            self.g.start = self.rob
+            self.path = self.g.returnPath()
+            d['path'] = self.g.path
+        else:
+            if self.verbose:
+                print("Robot not found")
+                
         if self.verbose:
             print("Initial Path Planning Time : "+str(time.process_time()-t0))
 
@@ -120,14 +156,19 @@ class ComputeVision():
             t0 = time.process_time() #we time each loop to get an idea of performance
 
             # loading new image
-            self.img = self.loadImg() 
+            ret, self.img = cap.read()
             self.vis.setframe(self.img) 
             
             ## getting robot coordinates
-            rbt = self.vis.returnDynamicCoordinates() 
-            self.rob = (rbt[0][0],rbt[0][1])
-            d['pos'] = [rbt[0][0],rbt[0][1],rbt[0][2]]
-            print(d['pos'])
+            rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
+            if ~(rbt_pos == False):
+                self.rob = tuple(rbt_pos[0:2])
+            else:
+                self.rob = False
+                
+            d['pos'] = rbt_pos
+            if self.verbose:
+                print(d['pos'])
             
             ## computing path
             # self.g.start = self.rob
@@ -136,6 +177,7 @@ class ComputeVision():
             ## displaying whatever was computed
             disp = self.display()
             cv2.imshow('frame',disp)
+            
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break      
 
@@ -280,7 +322,8 @@ if __name__ == '__main__':
         ctrl = RobotControl(verbose,"COM3")
     except:
         sys.exit(1)
-
+    
+    
     manager = Manager()
 
     d = manager.dict()
