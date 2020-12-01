@@ -24,8 +24,10 @@ while(initfailed):
     
     if DISPLAY:
         cv2.imshow("frame",frame)
-        cv2.waitKey(1)
-        
+    if cv2.waitKey(1) & 0XFF == ord('q'):
+        cv2.destroyAllWindows()
+        exit(1)
+cv2.destroyAllWindows()
 print("INIT OK")
 while (True):
     t0 = time.process_time()
@@ -35,6 +37,7 @@ while (True):
     vis.setframe(frame)
     rob,coordvalid = vis.returnDynamicCoordinates()
     print(rob)
+    print(not(rob==False))
     if DISPLAY:
         cv2.imshow('frame',img_cul)
         img_real = cv2.warpPerspective(img_cul, vis.trans, (500,500))
@@ -43,7 +46,7 @@ while (True):
         for p in obstacles:
             for corner in p:
                 cv2.circle(img_real, tuple(corner.reshape(2)), 5, (255,255,0), thickness=1, lineType=8, shift=0)
-        if ~(rob==False):
+        if not(rob==False):
             pt1 = (int(rob[0]*5), int(rob[1]*5))
             pt2 = (int(rob[0]*5+math.cos(rob[2])*50), int(rob[1]*5+math.sin(rob[2])*50))
 

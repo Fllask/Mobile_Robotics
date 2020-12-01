@@ -99,7 +99,7 @@ class Vision:
                 
         '''
         filteraim = colorfilter("FINISH",self.camera)
-        mask = filterob.get_mask(self.frame)
+        mask = filteraim.get_mask(self.frame)
         finish,invalid = getCentroid(mask)
         finish /= 5.
         if invalid:
