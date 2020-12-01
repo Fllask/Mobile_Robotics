@@ -53,6 +53,11 @@ class ComputeVision():
    
     """ Displays processed data """
     def display(self):
+        scalef = 5.
+        ilength = 8.
+        irad = 30
+        lineW = 2
+
         #projecting the image
         tr_img =  cv2.cvtColor(self.vis.frame,cv2.COLOR_HSV2BGR)
 
@@ -66,21 +71,21 @@ class ComputeVision():
         if not isinstance(self.path,bool):
             path = self.path
             for i in range(1,len(path)) :
-                cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
+                cv2.line(tr_img,(int(path[i][0]*scalef),int(path[i][1]*scalef)),(int(path[i-1][0]*scalef),int(path[i-1][1]*scalef)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
         if not isinstance(self.rob,bool):
-            pt1 = (int(self.rob[0]*5), int(self.rob[1]*5))
-            pt2 = (int(self.rob[0]*5+math.cos(self.rbt_pos[2])*50), int(self.rob[1]*5+math.sin(self.rbt_pos[2])*50))
+            pt1 = (int(self.rob[0]*scalef), int(self.rob[1]*scalef))
+            pt2 = (int(self.rob[0]*scalef+math.cos(self.rbt_pos[2])*scalef*ilength), int(self.rob[1]*5+math.sin(self.rbt_pos[2])*scalef*ilength))
 
-            cv2.circle(tr_img,(int(self.rbt_pos[0]*5),int(self.rbt_pos[1]*5)),30,(0,0,255),thickness=2)
-            cv2.line(tr_img,pt1,pt2,(0,0,255),thickness=2)
+            cv2.circle(tr_img,(int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)),irad,(0,0,255),thickness=2)
+            cv2.line(tr_img,pt1,pt2,(0,0,255),thickness=lineW)
 
-            tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*5),int(self.rbt_pos[1]*5)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
+            tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
         ## plotting the goal
         if not isinstance(self.stop,bool):
-            cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),30,(255,0,0),thickness=2)
-            tr_img = cv2.putText(tr_img, 'goal : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
+            cv2.circle(tr_img,(int(self.stop[0]*scalef),int(self.stop[1]*scalef)),irad,(255,0,0),thickness=lineW)
+            tr_img = cv2.putText(tr_img, 'goal : ' + str(self.stop), (int(self.stop[0]*scalef),int(self.stop[1]*scalef)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
 
         return tr_img
         
