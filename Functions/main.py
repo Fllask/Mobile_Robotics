@@ -59,19 +59,22 @@ class ComputeVision():
         font = cv2.FONT_HERSHEY_SIMPLEX 
 
         #plotting the obstacles detected
-        cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
+        if not isinstance(self.vis.getMap(downscale=False),(bool,list)):
+            cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
         
         #plotting the gobal navigation path
-        path = self.g.path
-        for i in range(1,len(path)) :
-            cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
+        if not isinstance(self.vis.getMap(downscale=False),bool):
+            path = self.g.path
+            if path != False:
+                for i in range(1,len(path)) :
+                    cv2.line(tr_img,(int(path[i][0]*5),int(path[i][1]*5)),(int(path[i-1][0]*5),int(path[i-1][1]*5)),(0,0,0),thickness=2)
         
         ## plotting the robot's position
-        if ~(self.rob == False):
+        if not isinstance(self.rob,bool):
             cv2.circle(tr_img,(int(self.rob[0]*5),int(self.rob[1]*5)),60,(0,0,255),thickness=4)
             tr_img = cv2.putText(tr_img, 'Robot coordinates : ' + str(self.rob), (int(self.rob[0]*10),int(self.rob[1]*10)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
         ## plotting the goal
-        if ~(self.rob == False):
+        if not isinstance(self.stop,bool):
             cv2.circle(tr_img,(int(self.stop[0]*5),int(self.stop[1]*5)),60,(255,0,0),thickness=4)
             tr_img = cv2.putText(tr_img, 'Goal coordinates : ' + str(self.stop), (int(self.stop[0]*5),int(self.stop[1]*5)), font,  1, (0,0,255), 1, cv2.LINE_AA) 
 
@@ -80,41 +83,50 @@ class ComputeVision():
     
         
         
-    """ Main loop for vision """
+    """ Main vision loop """
     def mainLoop(self,d):
+
         if self.verbose:
             print("Starting vision + global navigation main loop")
        
         #getting the camera input
-        cap = cv2.VideoCapture(2)
+        cap = cv2.VideoCapture(0)
+
         #get the first frame to test
+        
         ret, self.img = cap.read()
-        if ~ret:
+        self.img =  cv2.resize(self.img,(624,416))
+
+        if not ret:
             if self.verbose:
                 print("frame droped")
                 
          # initialization of the vision object
         t0 = time.process_time()
         initfailed = True
+        flag = self.verbose
+        if self.verbose:
+            print("initializing vision")
+
         while(initfailed):
             ret,frame = cap.read()
-            self.vis = v.Vision(frame, "ANDROID FLASK")
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag)
             initfailed = self.vis.invalid
-            cv2.imshow("frame",frame)
-            cv2.waitKey(1)
+            flag = False
         
-        cv2.destroyWindow("frame")
+        if self.verbose:
+            print("Vision Init Success")
+        
         if self.verbose:
             print("Initial Mapping Time : " + str(time.process_time()-t0))
-            
-            
+        
         #querying the aim coordinates
         coordAim, validcoord = self.vis.returnDynamicAim()
-        if validcoord:
+        if coordAim != False:
             self.stop = tuple(coordAim)
         else:
             #default aim coodinates
-            self.stop = (95.,5.)
+            self.stop = False
             
             
         
@@ -123,7 +135,7 @@ class ComputeVision():
         t0 = time.process_time()
         rbt_pos,ret = self.vis.returnDynamicCoordinates() ## getting robot coordinate
         
-        if rbt_pos == False:
+        if isinstance(rbt_pos,bool):
             self.rob = False
         else:
             self.rob = tuple(rbt_pos[0:2])
@@ -140,11 +152,10 @@ class ComputeVision():
         
         
         self.g = Global(self.obstacles,False,self.stop)
-        
-        if ~(self.rob == False):
+        if isinstance(coordAim, bool) and isinstance(rbt_pos, bool) and isinstance(self.obstacles, bool):
             self.g.start = self.rob
-            self.path = self.g.returnPath()
-            d['path'] = self.g.path
+            self.path = self.g.returnPath(self.obstacles,self.rob,coordAim)
+            d['path'] = self.path
         else:
             if self.verbose:
                 print("Robot not found")
@@ -161,29 +172,22 @@ class ComputeVision():
             
             ## getting robot coordinates
             rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
-            if ~(rbt_pos == False):
+            if not isinstance(rbt_pos,bool):
                 self.rob = tuple(rbt_pos[0:2])
             else:
                 self.rob = False
                 
             d['pos'] = rbt_pos
-            if self.verbose:
-                print(d['pos'])
-            
-            ## computing path
-            # self.g.start = self.rob
-            # self.path = self.g.plotPath(plotGraph=False,plotMap=False)
 
             ## displaying whatever was computed
             disp = self.display()
             cv2.imshow('frame',disp)
-            
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break      
 
             
-            if self.verbose:
-                print("Full Vision Loop : "+str(time.process_time()-t0))
+            #if self.verbose:
+                #print("Full Vision Loop : "+str(time.process_time()-t0))
             d['vtime']=str(time.process_time()-t0)
 
 
@@ -231,12 +235,9 @@ class RobotControl():
         if self.verbose:
             print("Starting main loop")
 
-        while d['path'] == False or d['pos'] == False:
-           time.sleep(0.01)
-
         # Initialise robot class
 
-        Init_pos =d['pos']
+        Init_pos = False
         Ts = 0.1
         kp = 3    #0.15   #0.5
         ka = 35  #0.4    #0.8
@@ -244,64 +245,51 @@ class RobotControl():
         vTOm=31.5 #30.30
         wTOm=(200*180)/(80*math.pi) #130.5 #
 
-        global_path = d['path']
-        thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
+        # thym = Robot(False,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
 
         # Initialise Filtering class
-        Rvel = np.array([[1.53, 0.], [0.,1.53]])
-        Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
-        Rcam = np.array([[0.000001,0.,0.],[0.,0.000001,0.],[0.,0.,0.000001]])
-        Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
 
-        filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
-        go=1
+        # filter = Utilities.init_filter()
+
+        init = False
+        go=False
 
         while go:
+
             tps1 = time.monotonic()
-            print("globpath: " + d['pos'])
 
-             # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
+            ################################################################################
+            # Initialise robot with a verified global path and a verified initial position #
+            ################################################################################
 
-            # global_path = d['path']
-            thym.global_path = global_path
+            while not init : 
+                Robot.initialisation(sef,d['path'],d['pos'])
+
+            #########################################################################
+            # get the position of the robot given by the camera when it is possible #
+            #          if not possible set the updateWithCam bolean to False        # 
+            #########################################################################
+
             pos_cam = d['pos'] if d['pos'] else np.array[[0],[0]]
 
-            rt = time.process_time() - t0
-            t0 = time.process_time()
-            if int(round(time.process_time(),0)) > t:
-                t = int(round(time.process_time(),0))
-                nd = dict(d)
-                if self.verbose:
-                    print("control period : " + str(rt))
-                    print("vision period : "+d["vtime"])
-                    print("position of robot : "+str(nd['pos']))
+            # Enter the robot FSM once initialised correctly
 
+            thym.thymio(Ts,th)
 
-
-            thym.compute_state_equation(Ts)
-            thym.compute_Pos()
-            thym.check()
-            thym.compute_input()
-            thym.run_on_thymio(self.th)
 
             #[give : x,y,theta,vr,vl] to the filter : 
-            x=float(thym.Pos[0])
-            y=float(thym.Pos[1])
-            theta=float(thym.Pos[2])
-
-            vL=int(thym.ML) if thym.ML<=500 else thym.ML - 2** 16 
-            vR=int(thym.MR) if thym.MR<=500 else thym.MR - 2** 16 
-    
-            vect=np.array([[x],[y],[theta],[vL],[vR]])
+            
+            robot_states = thym.get_states()
 
             time.sleep(0.1)
     
             # get the measurements from the camera : 
 
             # get our pos with the filter
-            filter.compute_kalman(pos_cam,vect,self.th,Ts,False)
+            if thym.astolfi==1:
+                filter.compute_kalman(pos_cam,robot_states,self.th,Ts,False)
 
-            thym.compute_pba(verbose=True)
+            
 
             tps2 = time.monotonic()
             Ts=tps2-tps1
@@ -312,6 +300,17 @@ class RobotControl():
                 print('FININSH!!!!')
                 tfinal=time.monotonic()
                 go = 0
+
+
+            rt = time.process_time() - t0
+            t0 = time.process_time()
+            if int(round(time.process_time(),0)) > t:
+                t = int(round(time.process_time(),0))
+                nd = dict(d)
+                if self.verbose:
+                    print("control period : " + str(rt))
+                    print("vision period : "+d["vtime"])
+                    print("position of robot : "+str(nd['pos']))
 
             
 
@@ -325,14 +324,14 @@ if __name__ == '__main__':
 
 
     """ Parsing stdin """
-    verbose = True
+    verbose = False
     for i in range (1,len(sys.argv)):
         if sys.argv[i] == "v":
             print("Running Verbose Mode")
             verbose = True
 
     try:
-        ctrl = RobotControl(verbose,"/dev/cu.usbmodem141401")
+        ctrl = RobotControl(verbose,"/dev/cu.usbmodem144101")
     except:
         sys.exit(1)
     
@@ -346,7 +345,7 @@ if __name__ == '__main__':
     d['goal'] = False
     d['vtime'] = "0"
 
-    cmptVis = ComputeVision(False)
+    cmptVis = ComputeVision(verbose)
 
     cmptVis.run(d)
     ctrl.run(d)
