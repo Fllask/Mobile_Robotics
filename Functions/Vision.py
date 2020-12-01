@@ -71,7 +71,7 @@ class Vision:
 
     def setframe(self, imgraw):
         img_prep = preprocess(imgraw)
-        img_real = cv2.warpPerspective(img_prep, self.trans, (500,500))
+        img_real = cv2.warpPerspective(img_prep, self.trans, (500,500),borderMode=cv2.BORDER_REFLECT_101)
         self.frame = img_real
         
     
@@ -132,11 +132,11 @@ class colorfilter:
             if color == "YELLOW":
                 self.band = np.array([[15,30],[169,255],[110,255]])
             if color == "BLUE":
-                self.band = np.array([[110,130],[95,255],[30,191]])
+                self.band = np.array([[110,130],[95,255],[50,191]])
             if color == "GREEN":
-                 self.band = np.array([[41,78],[100,255],[30,255]])
+                 self.band = np.array([[41,78],[100,255],[50,255]])
             if color == "ROBOT":
-                self.band = np.array([[135,170],[75,255],[70,255]])
+                self.band = np.array([[150,170],[100,255],[100,255]])
                 self.morph = NONE
             if color == "BLACK":
                  self.band = np.array([[0,179],[0,255],[0,30]])
@@ -176,10 +176,10 @@ class colorfilter:
 def preprocess(img):
     imgsmall = cv2.resize(img,(624,416))
     #imgsmooth = cv2.UMat(imgsmall)
-    imgsmooth = cv2.GaussianBlur(imgsmall,(5,5),0)
-    p2, p90 = np.percentile(imgsmooth, (2, 90))
+    #imgsmooth = cv2.GaussianBlur(imgsmall,(5,5),0)
+    p2, p90 = np.percentile(imgsmall, (2, 90))
     # Contrast stretching, we keep the image intensity between 2% and 90%
-    imgsmooth = exposure.rescale_intensity(imgsmooth, in_range=(p2, p90))
+    imgsmooth = exposure.rescale_intensity(imgsmall, in_range=(p2, p90))
 
     imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV)#.get().astype(np.uint8)
     #imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
@@ -203,18 +203,19 @@ def applyTransform(trans,x):
     y = (yp/yp[2])[0:2]
     return y
 
-def createMap(img,R_ROBOT = 65,camera= "XT3"):
+def createMap(img,R_ROBOT = 50,camera= "XT3"):
     
     filter_poly = colorfilter("BLACK",camera)
 
     maskpoly = filter_poly.get_mask(img)
+    cv2.imshow("mask poly", maskpoly)
+    # yd,xd = np.ogrid[-R_ROBOT: R_ROBOT+1, -R_ROBOT: R_ROBOT+1]
+    # disk = np.ones((5,5))#(xd**2+yd**2 <= (R_ROBOT//2)**2).astype('uint8')
+    margin = cv2.dilate(maskpoly,cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3)),iterations = 20,borderType = cv2.BORDER_REFLECT_101)
+    margin = cv2.dilate(margin,cv2.getStructuringElement(cv2.MORPH_RECT, (25,25)),iterations = 1,borderType = cv2.BORDER_REFLECT_101)
 
-    #maskpoly = cv2.resize(maskpoly,(500,500), interpolation=cv2.INTER_NEAREST)
-    yd,xd = np.ogrid[-R_ROBOT: R_ROBOT+1, -R_ROBOT: R_ROBOT+1]
-    disk = (xd**2+yd**2 <= (R_ROBOT//2)**2).astype('uint8')
-    margin = cv2.dilate(maskpoly,disk,iterations = 1)
     polyprojbin = margin.get().astype(np.uint8)
-
+    cv2.imshow("mask poly dil", polyprojbin*255)
     contours, ret = cv2.findContours(polyprojbin, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     polygons = []
     for c in contours:
@@ -246,6 +247,8 @@ def getCentroid(imageBin):
 def getRobotPos(imageBin, verbose = 0,display = 1):
     if type(imageBin) is cv2.UMat:
         imageBin = imageBin.get().astype(np.uint8)
+    if display:
+        cv2.imshow("mask",imageBin*255)
     valid = True
     moments = measure.moments(imageBin, order = 3)
     if moments[0,0]>800:
@@ -273,8 +276,7 @@ def getRobotPos(imageBin, verbose = 0,display = 1):
         #cv2.imshow("seg",imgsegmented*255)
         # print(phi)
         imgrot = ndimage.rotate(imgsegmented,phi*180/math.pi, reshape = False)
-        if display:
-            cv2.imshow("mask",imageBin*255)
+
         newmoments = measure.moments(imgrot)
         cm03 = newmoments[0,3] \
                -3*newmoments[0,2]*newmoments[0,1]/newmoments[0,0]\

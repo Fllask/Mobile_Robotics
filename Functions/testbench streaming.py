@@ -35,7 +35,7 @@ while (True):
     img_cul = cv2.resize(frame,(624,416))
     vis = v.Vision(frame, "ANDROID FLASK",prevtrans = vis.trans)
     vis.setframe(frame)
-    rob,coordvalid = vis.returnDynamicCoordinates()
+    rob,coordvalid = vis.returnDynamicCoordinates(display = 1)
 
     if DISPLAY:
         cv2.imshow('frame',img_cul)
