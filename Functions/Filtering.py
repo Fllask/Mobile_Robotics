@@ -19,7 +19,7 @@ class Filtering:
         self.Rcam = Rcam
         self.robot = robot
         self.Q = np.zeros((5,5))
-        self.compute_Q(Ts,2.5) # Q to measure motor
+        # self.compute_Q(Ts,2.5) # Q to measure motor
           
         self.Hcam=Hcam
         self.Hvel = Hvel
@@ -70,6 +70,7 @@ class Filtering:
 
         #Update for camera sensor
         if update_cam :
+            print('ici')
             X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
 
 

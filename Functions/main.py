@@ -52,7 +52,7 @@ class ComputeVision():
 
    
     """ Displays processed data """
-    def display(self):
+    def display(self,d):
         scalef = 5.
         ilength = 8.
         irad = 30
@@ -72,6 +72,16 @@ class ComputeVision():
             path = self.path
             for i in range(1,len(path)) :
                 cv2.line(tr_img,(int(path[i][0]*scalef),int(path[i][1]*scalef)),(int(path[i-1][0]*scalef),int(path[i-1][1]*scalef)),(0,0,0),thickness=2)
+
+        fltPos = d['fltPos']
+        if not isinstance(fltPos,bool):
+            pt1 = (int(fltPos[0]*scalef), int(fltPos[1]*scalef))
+            pt2 = (int(fltPos[0]*scalef+math.cos(fltPos[2])*scalef*ilength), int(fltPos[1]*5+math.sin(fltPos[2])*scalef*ilength))
+
+            cv2.circle(tr_img,(int(fltPos[0]*scalef),int(fltPos[1]*scalef)),irad,(0,255,255),thickness=2)
+            cv2.line(tr_img,pt1,pt2,(0,255,255),thickness=lineW)
+
+            # tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
         
         ## plotting the robot's position
         if not isinstance(self.rob,bool):
@@ -146,7 +156,7 @@ class ComputeVision():
         else:
             self.rob = tuple(self.rbt_pos[0:2])
             
-        d['pos'] = self.rbt_pos
+        d['visPos'] = self.rbt_pos
         
         if self.verbose:
             print("Initial Robot_Pos Estimation Time : "+str(time.process_time()-t0))
@@ -177,25 +187,28 @@ class ComputeVision():
             else:
                 self.rob = False
                 
-            d['pos'] = self.rbt_pos
+            d['visPos'] = self.rbt_pos
 
             ## displaying whatever was computed
-            disp = self.display()
+            disp = self.display(d)
             cv2.imshow('frame',disp)
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break      
 
             if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or self.pathComputed:
                 if self.verbose:
-                    print("No Path Computed")
-                    print("stopB->"+str(isinstance(self.stop,bool)))
-                    print("rbt_posB->"+str(isinstance(self.rbt_pos,bool)))
-                    print("obstaclesB->"+str(isinstance(self.obstacles,bool)))
-                    print("pathComputed->"+str(self.pathComputed))
+                    a = 0
+                    #   print("No Path Computed")
+                #     print("stopB->"+str(isinstance(self.stop,bool)))
+                #     print("rbt_posB->"+str(isinstance(self.rbt_pos,bool)))
+                #     print("obstaclesB->"+str(isinstance(self.obstacles,bool)))
+                #     print("pathComputed->"+str(self.pathComputed))
             else:
                 self.g.start = self.rob
                 self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
                 d['path'] = self.path
+                print(self.path)
+                self.pathComputed = True
             
             #if self.verbose:
                 #print("Full Vision Loop : "+str(time.process_time()-t0))
@@ -255,26 +268,30 @@ class RobotControl():
         kb = -8   #-0.07  #-0.2
         vTOm=31.5 #30.30
         wTOm=(200*180)/(80*math.pi) #130.5 #
-
-        # thym = Robot(False,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
+        thym = Robot(False,False,Ts, kp,ka,kb,vTOm,wTOm)
 
         # Initialise Filtering class
 
-        # filter = Utilities.init_filter()
+        Rvel = np.array([[100000000., 0.], [0.,10000000.]])
+        Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
+        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,2.]])
+        Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
+
+        filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
 
         init = False
-        go=False
+        go=1
 
         while go:
 
             tps1 = time.monotonic()
-
+            print(thym.state)
             #########################################################################
             # get the position of the robot given by the camera when it is possible #
             #          if not possible set the updateWithCam bolean to False        # 
             #########################################################################
 
-            pos_cam = d['pos'] if d['pos'] else np.array[[0],[0]]
+            pos_cam = np.array(d['visPos'],ndmin=2).T
 
 
             #########################################################################
@@ -282,27 +299,28 @@ class RobotControl():
             #                           FSM of the Robot                            #
             #                                                                       #
             #########################################################################
-
             if thym.state =='ASTOLFI' : 
-                thym.ASTOLFI(th,Ts, filter)
+                thym.ASTOLFI(self.th,Ts, filter,pos_cam)
             elif thym.state == 'TURN' :
-                thym.TURN(th,Ts)
+                thym.TURN(self.th,Ts)
             elif thym.state == 'LOCAL' :
-                thym.LOCAL(th,Ts)
+                thym.LOCAL(self.th,Ts)
             elif thym.state == 'INIT' :
-                thym.INIT(d['path'],d['pos'])
+                thym.INIT(d['path'],d['visPos'])
 
 
 
             tps2 = time.monotonic()
             Ts=tps2-tps1
+            d['fltPos'] = thym.Pos
 
-            if thym.p<3 and thym.node==len(thym.global_path)-2:
-                self.th.set_var("motor.left.target", 0)
-                self.th.set_var("motor.right.target", 0)
-                print('FININSH!!!!')
-                tfinal=time.monotonic()
-                go = 0
+            if thym.p is not None :
+                if thym.p<3 and thym.node==len(thym.global_path)-2:
+                    self.th.set_var("motor.left.target", 0)
+                    self.th.set_var("motor.right.target", 0)
+                    print('FININSH!!!!')
+                    tfinal=time.monotonic()
+                    go = 0
 
 
             rt = time.process_time() - t0
@@ -313,7 +331,7 @@ class RobotControl():
                 if self.verbose:
                     print("control period : " + str(rt))
                     print("vision period : "+d["vtime"])
-                    print("position of robot : "+str(nd['pos']))
+                    print("position of robot : "+str(nd['visPos']))
 
             
 
@@ -325,7 +343,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "/dev/cu.usbmodem144101"
+    robotPort = "/dev/cu.usbmodem143101"
 
     """ Parsing stdin """
     verbose = False
@@ -343,11 +361,13 @@ if __name__ == '__main__':
     manager = Manager()
 
     d = manager.dict()
-    d['pos'] = False
+    d['visPos'] = False
+    d['fltPos'] = False
     d['path'] = False
     d['map'] = False
     d['goal'] = False
     d['vtime'] = "0"
+
 
     cmptVis = ComputeVision(verbose)
 

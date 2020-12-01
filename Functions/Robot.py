@@ -29,7 +29,8 @@ class Robot:
         self.p=None
         self.vTOm=vTOm                     # constant to convert velocity with value to give to the left and right motor
         self.wTOm=wTOm                     # constant to convert angular velocity with value to give to the left and right motor
-        self.compute_pba()                 # compute values for rho alpha and beta
+        if not isinstance(global_path,bool):
+            self.compute_pba()                 # compute values for rho alpha and beta
         
         self.u=np.array([0.0,0.])          # [v;w] speed and angular velocity
         self.ML=0                          # value to put in the left part of the motor
@@ -45,15 +46,11 @@ class Robot:
     
     
     def compute_pba(self,verbose = False):
-        
-        self.a=-self.Pos[2]+ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
+        self.a=-self.Pos[2]+ut.compute_angle(self.Pos,self.global_path[self.node+1])
         self.a=(m.pi+self.a)%(2*m.pi)-m.pi
-        print('theta',self.Pos [2])
-        print('-beta ref',ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1]))
-        self.p=ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
+        self.p=ut.compute_distance(self.Pos,self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
-        self.b=-self.Pos[2]-self.bref-self.a 
-        print('a',self.a)
+        self.b=-self.Pos[2]-self.bref-self.a
         if verbose:
             print("a : " + str(self.a) + " , b : " + str(self.b) + " , p : " + str(self.p)) 
         return self.b
@@ -227,7 +224,8 @@ class Robot:
         else :
             return self.state
         if pos_init is not False :
-            self.pos_init = pos_init
+            self.Pos = pos_init
+            print(self.Pos)
         else : 
             return self.state
 
@@ -292,7 +290,7 @@ class Robot:
 
             # get our pos with the filter
             filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
-            return self.state
+            return self.Pos
         
 
     def TURN(self,th,Ts):
