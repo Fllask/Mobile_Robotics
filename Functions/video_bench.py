@@ -1,3 +1,5 @@
+#!/Library/Frameworks/Python.framework/Versions/3.8/bin/python3.8
+#the line above makes it more nicely executable on my mac, PATH may differ on different machines
 # -*- coding: utf-8 -*-
 """
 Created on Sun Nov 29 12:46:17 2020
@@ -13,7 +15,7 @@ import time
 DISPLAY = True
 
 
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(0)
 
 #frame = cv2.imread('../sample_pictures/new color.jpg')
 initfailed = True

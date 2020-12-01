@@ -57,7 +57,7 @@ class Vision:
         self.setframe(image)    #generate self.frame
         if self.invalid:
             print("initialisation failed")
-            self.map = np.array([[]])
+            self.map = False
         else:
             self.map = createMap(self.frame,camera = camera)
 
@@ -115,7 +115,7 @@ class colorfilter:
             if color == "RED":
                 self.band = np.array([[0,11],[142,255],[30,255]])
             if color == "YELLOW":
-                self.band = np.array([[25,33],[92,255],[92,255]])
+                self.band = np.array([[20,30],[90,255],[110,255]])
             if color == "BLUE":
                 self.band = np.array([[110,130],[161,255],[41,220]])
             if color == "GREEN":
@@ -128,18 +128,18 @@ class colorfilter:
                  self.morph = BIG
         if camera == "ANDROID FLASK":
             if color == "RED":
-                self.band = np.array([[0,8],[180,255],[128,255]])
+                self.band = np.array([[0,11],[108,255],[131,255]])
             if color == "YELLOW":
-                self.band = np.array([[15,30],[169,255],[210,255]])
+                self.band = np.array([[15,30],[169,255],[110,255]])
             if color == "BLUE":
-                self.band = np.array([[115,127],[73,255],[70,191]])
+                self.band = np.array([[110,130],[95,255],[30,191]])
             if color == "GREEN":
-                 self.band = np.array([[41,67],[100,255],[70,255]])
+                 self.band = np.array([[41,78],[100,255],[30,255]])
             if color == "ROBOT":
                 self.band = np.array([[135,170],[75,255],[70,255]])
                 self.morph = NONE
             if color == "BLACK":
-                 self.band = np.array([[0,115],[0,255],[0,55]])
+                 self.band = np.array([[0,179],[0,255],[0,30]])
                  self.morph = BIG
             if color == "FINISH":
                 self.band = np.array([[80,105],[100,255],[40,255]])
@@ -154,14 +154,14 @@ class colorfilter:
         if self.color == "RED":
             img = image.get().astype(np.uint8)
             if self.camera == "ANDROID FLASK":
-                mask += cv2.inRange(img,np.array([173,180,128]),np.array([179,255,255]))
+                mask += cv2.inRange(img,np.array([172,108,131]),np.array([179,255,255]))
                 cv2.threshold(mask,0.5,1,0,dst = mask)
 
-        if self.color == "BLACK":
-            img = image.get().astype(np.uint8)
-            if self.camera == "ANDROID FLASK":
-                 mask += cv2.inRange(img,np.array([127,0,0]),np.array([179,255,55]))
-                 cv2.threshold(mask,0.5,1,0,dst = mask)
+        # if self.color == "BLACK":
+        #     img = image.get().astype(np.uint8)
+        #     if self.camera == "ANDROID FLASK":
+        #          mask += cv2.inRange(img,np.array([127,0,0]),np.array([179,255,55]))
+        #          cv2.threshold(mask,0.5,1,0,dst = mask)
             
         mask = cv2.UMat(mask) ## convert the mask to an opencl object for fast morphology
             
@@ -169,8 +169,8 @@ class colorfilter:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((6,6)).astype("uint8"))
         elif self.morph == DEFAULT:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((7,7)).astype("uint8"))
-        elif self.morph == NONE:
-            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
+        # elif self.morph == NONE:
+        #     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
         return cv2.UMat(mask)
 
 def preprocess(img):
@@ -220,17 +220,9 @@ def createMap(img,R_ROBOT = 65,camera= "XT3"):
     for c in contours:
         polygon    =  cv2.approxPolyDP(c, 15, True)
         polygons.append(polygon)
-        
+    if len(polygons) == 0:
+        polygons = False
     return polygons
-
-def get_image(input):
-    #frame = cv2.imread(input) 
-    frame = cv2.VideoCapture(1).read()
-    
-    small_frame = cv2.resize(frame[1],(624,416))
-    return cv2.UMat(small_frame)
-
-
 
 def getCentroid(imageBin):
     invalid = False
@@ -251,7 +243,7 @@ def getCentroid(imageBin):
     return centroid,invalid
 
 
-def getRobotPos(imageBin, verbose = 0,display = 0):
+def getRobotPos(imageBin, verbose = 0,display = 1):
     if type(imageBin) is cv2.UMat:
         imageBin = imageBin.get().astype(np.uint8)
     valid = True
