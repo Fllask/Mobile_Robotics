@@ -192,7 +192,7 @@ class RobotControl():
 
         # Initialise robot class
 
-        Init_pos = np.array([0.,0.,0.])
+        
         Ts = 0.1
         kp = 3    #0.15   #0.5
         ka = 35  #0.4    #0.8
@@ -200,7 +200,16 @@ class RobotControl():
         vTOm=31.5 #30.30
         wTOm=(200*180)/(80*math.pi) #130.5 #
 
-        global_path = d['path'] if d['path'] else [(0,0)]
+        while d['path'] == False and d['pos']== False :
+            time.sleep(0.01)
+
+
+        global_path = d['path'] 
+        print(global_path)
+
+        Init_pos = np.array([d['pos'][0],d['pos'][1], -math.pi/2])
+        print(Init_pos)
+
         thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
 
         # Initialise Filtering class
@@ -265,7 +274,6 @@ class RobotControl():
                 self.th.set_var("motor.right.target", 0)
                 print('FININSH!!!!')
                 tfinal=time.monotonic()
-                print('Final time in the robot\n',tfinal-tinit)
                 go = 0
 
             

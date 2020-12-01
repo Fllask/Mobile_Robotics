@@ -43,6 +43,8 @@ class Robot:
         self.p=ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
         self.b=-self.Pos[2]-self.bref-self.a 
+
+        #print('pba' + str(self.a) +' '+ str(self.p)+' '+ str(self.b) + '\n')
         return self.b
 
     # assume alpha(0)is between -pi/2 and pi/2 and stays between those two values
@@ -99,14 +101,17 @@ class Robot:
         
         ML=vM+wM
         MR=vM-wM
-        ML = ML if ML >= 0 else 2 ** 16 + ML
+        #print('ML',ML,'\t')
+        #print('MR',MR,'\n')
+        ML = ML if ML >= 0 else  2 ** 16-1 + ML
         ML = int(ML)
-        MR = MR if MR >= 0 else 2 ** 16 + MR
+        MR = MR if MR >= 0 else (2 ** 16-1) + MR
         MR = int(MR)
 
         self.ML=ML
         self.MR=MR+3
-
+        #print('ML',self.ML,'\t')
+        #print('MR',self.MR,'\n')
         return self.ML
 
     def run_on_thymio(self,th):
