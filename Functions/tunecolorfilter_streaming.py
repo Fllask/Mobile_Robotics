@@ -22,7 +22,7 @@ imgbgr = cv2.cvtColor(img,cv2.COLOR_HSV2BGR)
 filterg = v.colorfilter("RED", camera =CAMERA)
 #v.manually_get_centroid(img,preprocessed = True)
 mask = filterg.get_mask(img)
-cv2.imshow('mask',mask)
+cv2.imshow('mask auto',mask)
 GC, flag = v.getCentroid(mask)
 if flag:
     GC = v.manually_get_centroid(img, preprocessed=True)

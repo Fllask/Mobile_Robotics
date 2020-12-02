@@ -214,24 +214,28 @@ def manually_get_centroid(img, preprocessed = False):
     if not preprocessed:
         img = preprocess(img)
     mask_watershed = np.zeros(img.shape[0:2])
-    cv2.namedWindow("image")
-    cv2.setMouseCallback("image",watershed,img)
-    cv2.imshow("image", cv2.cvtColor(img.astype("uint8"),cv2.COLOR_HSV2BGR))
-    cv2.imshow("mask", mask_watershed)
-
     print("CLic on ROI, then press y if the centroid is correct, n to reset")
-    if cv2.waitKey(0) & 0XFF == ord('y'):
-        centroid, ret = getCentroid(cv2.UMat(mask_watershed))
-        return centroid
-    if cv2.waitKey(0) & 0XFF == ord('n'):
-        mask_watershed = np.zeros(img.shape[0:2])
-    
+    while(True):
+        cv2.namedWindow("image")
+        cv2.setMouseCallback("image",watershed,img)
+        img_disp = cv2.cvtColor(img.astype("uint8"),cv2.COLOR_HSV2BGR)
+        cv2.imshow("image", img_disp)
+        cv2.imshow("masked", cv2.bitwise_and(img_disp,img_disp, mask= mask_watershed.astype("uint8")))
+        key = cv2.waitKey(1)
+        if key & 0XFF == ord('y'):
+            centroid, ret = getCentroid(cv2.UMat(mask_watershed))
+            break
+        if key & 0XFF == ord('n'):
+            mask_watershed = np.zeros(img.shape[0:2])
+    cv2.destroyWindow("image")
+    cv2.destroyWindow("masked")
+    return centroid
 def watershed(event, y, x, flags, img):
     if event == cv2.EVENT_LBUTTONDOWN:
         global mask_watershed
         difhmax = 10
-        difsmax = 15
-        difvmax = 30
+        difsmax = 30
+        difvmax = 50
         flagWrap = False
         listnew = [(x,y)]
         visited = np.zeros(img.shape[0:2])
@@ -255,12 +259,8 @@ def watershed(event, y, x, flags, img):
                             if abs(img[coord][0]-img[x,y,0]) > abs(180-abs(img[coord][0]-img[x,y,0])):
                                 flagWrap = True
                                 
-                        else:
-                            print(difh)
-                            print(difs)
-                            print(difv)
         mask_watershed =cv2.bitwise_or(visited,mask_watershed)
-        cv2.imshow("mask", mask_watershed)
+        
         
 def preprocess(img):
     imgsmall = cv2.resize(img,(624,416))
