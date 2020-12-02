@@ -52,7 +52,7 @@ cv2.createTrackbar('Lmax','trkbar',0,255,dumm)
 for i in range(1):
     while True:
         
-        img = loadImg(isFile = not webcam, input = "../sample_pictures/test_set_2/06.jpg")
+        img = loadImg(isFile = not webcam, input = "sample.jpg")
         p2, p90 = np.percentile(img, (2, 90))
         img =  cv2.UMat(cv2.resize(img,(624,416)))
 
