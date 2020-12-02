@@ -230,14 +230,15 @@ def manually_get_centroid(img, preprocessed = False):
     cv2.destroyWindow("image")
     cv2.destroyWindow("masked")
     return centroid
-def watershed(event, y, x, flags, img):
+def watershed(event, y_ori, x_ori, flags, img):
     if event == cv2.EVENT_LBUTTONDOWN:
         global mask_watershed
         difhmax = 10
-        difsmax = 30
-        difvmax = 50
+        difsmax = 70
+        difvmax = 70
         flagWrap = False
-        listnew = [(x,y)]
+        listnew = [(x_ori,y_ori)]
+        hue_ori = img[x_ori,y_ori,0]
         visited = np.zeros(img.shape[0:2])
         while len(listnew)>0: 
             coord = listnew.pop(0)
@@ -248,17 +249,18 @@ def watershed(event, y, x, flags, img):
                     if y >= img.shape[1] or y <0:
                         continue
                     if visited[x,y] == 0:
-                        difh = min(abs(img[coord][0]-img[x,y,0]),abs(180-abs(img[coord][0]-img[x,y,0])))
+                        #difh = min(abs(img[coord][0]-img[x,y,0]),abs(180-abs(img[coord][0]-img[x,y,0])))
                         difs = abs(img[coord][1]-img[x,y,1])
                         difv = abs(img[coord][2]-img[x,y,2])
-                        
-                        if difh<difhmax and difs<difsmax and difv < difvmax:
+                        dif_ori = min(abs(hue_ori-img[x,y,0]),abs(180-abs(hue_ori-img[x,y,0])))
+                        if dif_ori<difhmax and difs<difsmax and difv < difvmax:
                             
                             visited[x,y] = 1
                             listnew.append((x,y))
                             if abs(img[coord][0]-img[x,y,0]) > abs(180-abs(img[coord][0]-img[x,y,0])):
                                 flagWrap = True
-                                
+                        # else:
+                        #     print("difh: "+str(dif)+" difs: "+str(difs)+" difv: "+str(difv))
         mask_watershed =cv2.bitwise_or(visited,mask_watershed)
         
         
