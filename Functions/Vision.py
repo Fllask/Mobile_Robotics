@@ -302,8 +302,10 @@ def createMap(img,R_ROBOT = 50,camera= "XT3"):
     cv2.imshow("mask poly", maskpoly)
     # yd,xd = np.ogrid[-R_ROBOT: R_ROBOT+1, -R_ROBOT: R_ROBOT+1]
     # disk = np.ones((5,5))#(xd**2+yd**2 <= (R_ROBOT//2)**2).astype('uint8')
-    margin = cv2.dilate(maskpoly,cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3)),iterations = 20,borderType = cv2.BORDER_REFLECT_101)
-    margin = cv2.dilate(margin,cv2.getStructuringElement(cv2.MORPH_RECT, (25,25)),iterations = 1,borderType = cv2.BORDER_REFLECT_101)
+    margin = cv2.dilate(maskpoly,cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3))\
+                        ,iterations = 20,borderType =cv2.BORDER_CONSTANT,borderValue = 1)
+    margin = cv2.dilate(margin,cv2.getStructuringElement(cv2.MORPH_RECT, (25,25))\
+                        ,iterations = 1,borderType = cv2.BORDER_CONSTANT,borderValue = 1)
 
     polyprojbin = margin.get().astype(np.uint8)
     cv2.imshow("mask poly dil", polyprojbin*255)
