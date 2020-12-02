@@ -19,7 +19,7 @@ cap = cv2.VideoCapture(1)
 initfailed = True
 while(initfailed):
     ret,frame = cap.read()
-    vis = v.Vision(frame, "ANDROID FLASK")
+    vis = v.Vision(frame, "ANDROID FLASK", setmanually = True)
     initfailed = vis.invalid
     
     if DISPLAY:

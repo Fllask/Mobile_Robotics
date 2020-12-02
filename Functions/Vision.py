@@ -9,8 +9,9 @@ DEFAULT = 0
 BIG = 1
 NONE = 2
 
+mask_watershed = 0
 
-def getTransform(image,camera,prevtrans):
+def getTransform(image,camera,prevtrans, setmanually = False):
     #return a geometric transform (usable with cv2.warpPerspective or with )
     image = preprocess(image)
     invalid = False
@@ -22,24 +23,39 @@ def getTransform(image,camera,prevtrans):
     maskr= filr.get_mask(image)
     BL,fr = getCentroid(maskr)
     if fr:
-        invalid = True
         print("RED ERROR")
+        if setmanually:
+            BL = manually_get_centroid(image, preprocessed=True)
+        else:
+            invalid = True
+
     maskg= filg.get_mask(image)
     TL,fg = getCentroid(maskg)
     if fg:
         print("GREEN ERROR")
-
-        invalid = True
+        if setmanually:
+            TL = manually_get_centroid(image, preprocessed=True)
+        else:
+            invalid = True
+            
     maskb= filb.get_mask(image)
     BR,fb = getCentroid(maskb)
     if fb:
         print("BLUE ERROR")
-        invalid = True
+        if setmanually:
+            BR = manually_get_centroid(image, preprocessed=True)
+        else:
+            invalid = True
+            
+            
     masky= fily.get_mask(image)
     TR,fy = getCentroid(masky)
     if fy:
         print("YELLOW ERROR")
-        invalid = True
+        if setmanually:
+            TR = manually_get_centroid(image, preprocessed=True)
+        else:
+            invalid = True
     if invalid:
         trans = prevtrans
     else:
@@ -51,9 +67,9 @@ class Vision:
     """ Handles vision """
     i = 12345
 
-    def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3), verbose = False):
+    def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3), verbose = False, setmanually = False):
         self.camera = camera
-        self.trans, self.invalid = getTransform(image, camera,prevtrans)
+        self.trans, self.invalid = getTransform(image, camera,prevtrans,setmanually = setmanually)
         self.setframe(image)    #generate self.frame
         if self.invalid:
             print("initialisation failed")
@@ -139,7 +155,7 @@ class colorfilter:
                 self.band = np.array([[150,170],[100,255],[100,255]])
                 self.morph = NONE
             if color == "BLACK":
-                 self.band = np.array([[0,179],[0,255],[0,30]])
+                 self.band = np.array([[0,179],[0,255],[0,50]])
                  self.morph = BIG
             if color == "FINISH":
                 self.band = np.array([[80,105],[100,255],[40,255]])
@@ -172,7 +188,82 @@ class colorfilter:
         elif self.morph == NONE:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
         return cv2.UMat(mask)
+        
+    
+    
 
+    # def change_color(self, img, preprocessed = True, use_watershed = True):
+    #     if isinstance(img, cv2.UMat):
+    #         img = img.get().astype(int)
+    #     else:
+    #         img = img.astype(int)
+    #     if not preprocessed:
+    #         img = preprocess(img)
+    #     print("click on "+str(self.color))
+    #     cv2.namedWindow("image")
+    #     cv2.setMouseCallback("image",watershed,img)
+    #     cv2.imshow("image", cv2.cvtColor(img.astype("uint8"),cv2.COLOR_HSV2BGR))
+        
+        
+def manually_get_centroid(img, preprocessed = False):
+    global mask_watershed
+    if isinstance(img, cv2.UMat):
+        img = img.get().astype(int)
+    else:
+        img = img.astype(int)
+    if not preprocessed:
+        img = preprocess(img)
+    mask_watershed = np.zeros(img.shape[0:2])
+    print("CLic on ROI, then press y if the centroid is correct, n to reset")
+    while(True):
+        cv2.namedWindow("image")
+        cv2.setMouseCallback("image",watershed,img)
+        img_disp = cv2.cvtColor(img.astype("uint8"),cv2.COLOR_HSV2BGR)
+        cv2.imshow("image", img_disp)
+        cv2.imshow("masked", cv2.bitwise_and(img_disp,img_disp, mask= mask_watershed.astype("uint8")))
+        key = cv2.waitKey(1)
+        if key & 0XFF == ord('y'):
+            centroid, ret = getCentroid(cv2.UMat(mask_watershed))
+            break
+        if key & 0XFF == ord('n'):
+            mask_watershed = np.zeros(img.shape[0:2])
+    cv2.destroyWindow("image")
+    cv2.destroyWindow("masked")
+    return centroid
+def watershed(event, y_ori, x_ori, flags, img):
+    if event == cv2.EVENT_LBUTTONDOWN:
+        global mask_watershed
+        difhmax = 10
+        difsmax = 70
+        difvmax = 70
+        flagWrap = False
+        listnew = [(x_ori,y_ori)]
+        hue_ori = img[x_ori,y_ori,0]
+        visited = np.zeros(img.shape[0:2])
+        while len(listnew)>0: 
+            coord = listnew.pop(0)
+            for x in range(coord[0]-1,coord[0]+1):
+                if x >= img.shape[0] or x<0:
+                    continue
+                for y in range(coord[1]-1,coord[1]+1):
+                    if y >= img.shape[1] or y <0:
+                        continue
+                    if visited[x,y] == 0:
+                        #difh = min(abs(img[coord][0]-img[x,y,0]),abs(180-abs(img[coord][0]-img[x,y,0])))
+                        difs = abs(img[coord][1]-img[x,y,1])
+                        difv = abs(img[coord][2]-img[x,y,2])
+                        dif_ori = min(abs(hue_ori-img[x,y,0]),abs(180-abs(hue_ori-img[x,y,0])))
+                        if dif_ori<difhmax and difs<difsmax and difv < difvmax:
+                            
+                            visited[x,y] = 1
+                            listnew.append((x,y))
+                            if abs(img[coord][0]-img[x,y,0]) > abs(180-abs(img[coord][0]-img[x,y,0])):
+                                flagWrap = True
+                        # else:
+                        #     print("difh: "+str(dif)+" difs: "+str(difs)+" difv: "+str(difv))
+        mask_watershed =cv2.bitwise_or(visited,mask_watershed)
+        
+        
 def preprocess(img):
     imgsmall = cv2.resize(img,(624,416))
     #imgsmooth = cv2.UMat(imgsmall)
@@ -225,7 +316,7 @@ def createMap(img,R_ROBOT = 50,camera= "XT3"):
         polygons = False
     return polygons
 
-def getCentroid(imageBin):
+def getCentroid(imageBin, setmanually = False):
     invalid = False
     img = imageBin.get().astype(np.uint8)
     moments = measure.moments(img, order = 2)
@@ -240,7 +331,6 @@ def getCentroid(imageBin):
         print("invalid centroid: no pixel")
         invalid = True
         centroid = np.array([0,0])
-
     return centroid,invalid
 
 
