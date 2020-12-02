@@ -217,7 +217,6 @@ class Robot:
         sensor= np.array(th["prox.horizontal"])
         if sensor[self.idx_sensor[1]]>700:
             self.locstate=0
-            #print("state2to3")
         return self.locstate
 
     

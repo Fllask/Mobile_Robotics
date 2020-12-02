@@ -311,7 +311,7 @@ def applyTransform(trans,x):
     return y
 
 def createMap(img,R_ROBOT = 50,camera= "XT3"):
-    
+    border_size =30
     filter_poly = colorfilter("BLACK",camera)
 
     maskpoly = filter_poly.get_mask(img)
@@ -320,7 +320,7 @@ def createMap(img,R_ROBOT = 50,camera= "XT3"):
     # disk = np.ones((5,5))#(xd**2+yd**2 <= (R_ROBOT//2)**2).astype('uint8')
     margin = cv2.dilate(maskpoly,cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3))\
                         ,iterations = 20,borderType =cv2.BORDER_CONSTANT,borderValue = 0)
-    margin = cv2.dilate(margin,cv2.getStructuringElement(cv2.MORPH_RECT, (25,25))\
+    margin = cv2.dilate(margin,cv2.getStructuringElement(cv2.MORPH_RECT, (border_size,border_size))\
                         ,iterations = 1,borderType = cv2.BORDER_CONSTANT,borderValue = 0)
 
     polyprojbin = margin.get().astype(np.uint8)

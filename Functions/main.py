@@ -111,7 +111,7 @@ class ComputeVision():
        
         #getting the camera input
 
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(1)
 
         #get the first frame to test
         
@@ -132,7 +132,7 @@ class ComputeVision():
 
         while(initfailed):
             ret,frame = cap.read()
-            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag)
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True)
             initfailed = self.vis.invalid
             flag = False
         
