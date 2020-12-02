@@ -351,8 +351,9 @@ def getRobotPos(imageBin, verbose = 0,display = 1):
         
         #check the variance of the image
         if max(varx,vary)>2*imageBin.size**0.5:
-            print("invalide coord:noise")
-            valid = False
+            if verbose:
+                print("invalide coord:noise")
+            return False,False
         #get the angle
         if abs(varx-vary)<0.0001:
             phi = math.pi/4
@@ -380,12 +381,13 @@ def getRobotPos(imageBin, verbose = 0,display = 1):
         if verbose:
             print("phi (with correction):"+str(phi))
         pos = np.append(centroid,phi)
+        pos[0:2] = pos[0:2]/5
     else:
         print("invalide coord: no or not enough pixel")
         valid = False
-        pos = np.array([0,0,0])
+        pos = False
         
-    pos[0:2] = pos[0:2]/5
+    
 
 
     return pos,valid
