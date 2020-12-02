@@ -237,6 +237,8 @@ class Robot:
                 th.set_var('motor.left.target',0)
                 th.set_var('motor.right.target',0)
                 self.locstate=0
+                
+
         return self.state
 
     def INIT(self,global_path, pos_init) : 
