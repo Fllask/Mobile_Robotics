@@ -111,7 +111,7 @@ class ComputeVision():
        
         #getting the camera input
 
-        cap = cv2.VideoCapture(1)
+        cap = cv2.VideoCapture(0)
 
         #get the first frame to test
         
@@ -199,7 +199,7 @@ class ComputeVision():
 
             if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or d['pathComputed']:#self.pathComputed
                 if self.verbose:
-                    a = 0
+                    pass
                     #   print("No Path Computed")
                 #     print("stopB->"+str(isinstance(self.stop,bool)))
                 #     print("rbt_posB->"+str(isinstance(self.rbt_pos,bool)))
@@ -208,6 +208,7 @@ class ComputeVision():
             else:
                 self.g.start = self.rob
                 self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
+                print(self.obstacles)
                 d['path'] = self.path
                 print(self.path)
                 #self.pathComputed = True
