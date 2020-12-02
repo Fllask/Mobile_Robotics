@@ -110,7 +110,7 @@ class Utilities:
         plt.show()
 
     def compute_angle(self,Pos1,Pos2):
-        angle_value=m.atan2(Pos2[1]-Pos1[1],Pos2[0]-Pos1[0])
+        angle_value=m.atan2(float(Pos2[1])-float(Pos1[1]),float(Pos2[0])-float(Pos1[0]))
         return angle_value
 
     def compute_distance(self,Pos1,Pos2):
