@@ -33,8 +33,7 @@ class Filtering:
         innovation = zk - np.dot(H,X_est)
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        if verbose:
-            print('K\n',K)
+        print('K\n',K)
         X_est = X_est + np.dot(K,innovation)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
         return X_est, P_est
@@ -86,44 +85,71 @@ class Filtering:
             update_cam : boolean to know if we update kalman with the measurements of the camera or not '''
 
         X_filter=self.kalman(pos_cam,states_robot,th,Ts,update_cam)
-        self.compute_Q(Ts, 6.15)
+        self.compute_Q(Ts, cov_type = {'iso' : 0.5,
+                                       'sig1': 0.5,
+                                       'sig2': 0.5,
+                                       'sig3': 0.1,
+                                       'sig4': 0.6,
+                                       'sig5': 0.6
+                                       })
         self.robot.Pos=X_filter[0:3]
         self.robot.ML=X_filter[3]
         self.robot.MR=X_filter[4]
 
-    def compute_Q(self,Ts,sig):
+    def compute_Q(self,Ts, cov_type = {'diag' : 2.}):
 
        theta = self.robot.Pos[2]
        vTOm = self.robot.vTOm
 
-       self.Q[0][0] = sig*(m.cos(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
-       self.Q[0][1] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
-       self.Q[0][2] = 0
-       self.Q[0][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm))
-       self.Q[0][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm))
+       #if 'full' in cov_type :
 
-       self.Q[1][0] = self.Q[0][1] 
-       self.Q[1][1] = sig*(m.sin(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
-       self.Q[1][2] = 0
-       self.Q[1][3] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm))
-       self.Q[1][4] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm))
+           
+       if 'diag' in cov_type :
+            self.Q = np.eye(5,5) * cov_type['diag']
 
-       self.Q[2][0] = self.Q[0][2]
-       self.Q[2][1] = self.Q[1][2]
-       self.Q[2][2] = sig*(Ts**3)/(3*2*4.7**2*(vTOm**2))
-       self.Q[2][3] = sig*Ts**2/(2*2*4.7*(vTOm))
-       self.Q[2][4] = - sig*Ts**2/(2*2*4.7*(vTOm))
+       elif 'iso' in cov_type :
 
-       self.Q[3][0] = self.Q[0][3]
-       self.Q[3][1] = self.Q[1][3]
-       self.Q[3][2] = self.Q[2][3]
-       self.Q[3][3] = sig*Ts
-       self.Q[3][4] = 0
+            self.Q = np.eye(5,5)
+            self.Q[0][0] = cov_type['sig1']
+            self.Q[1][1] = cov_type['sig2']
+            self.Q[2][2] = cov_type['sig3']
+            self.Q[3][3] = cov_type['sig4']*vTOm
+            self.Q[4][4] = cov_type['sig5']*vTOm
 
-       self.Q[4][0] = self.Q[0][4]
-       self.Q[4][1] = self.Q[1][4]
-       self.Q[4][2] = self.Q[2][4]
-       self.Q[4][3] = self.Q[3][4]
-       self.Q[4][4] = sig*Ts
+       elif 'matlab' in cov_type :
+            sig = cov_type['matlab']
+
+            self.Q[0][0] = sig*(m.cos(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
+            self.Q[0][1] = sig*(m.cos(theta)*m.sin(theta))*(Ts**3)/(3*2*(vTOm**2))
+            self.Q[0][2] = 0
+            self.Q[0][3] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm))
+            self.Q[0][4] = sig*m.cos(theta)*(Ts**2)/(2*2*(vTOm))
+
+            self.Q[1][0] = self.Q[0][1] 
+            self.Q[1][1] = sig*(m.sin(theta)**2)*(Ts**3)/(3*2*(vTOm**2))
+            self.Q[1][2] = 0
+            self.Q[1][3] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm))
+            self.Q[1][4] = sig*m.sin(theta)*(Ts**2)/(2*2*(vTOm))
+    
+            self.Q[2][0] = self.Q[0][2]
+            self.Q[2][1] = self.Q[1][2]
+            self.Q[2][2] = sig*(Ts**3)/(3*2*4.7**2*(vTOm**2))
+            self.Q[2][3] = sig*Ts**2/(2*2*4.7*(vTOm))
+            self.Q[2][4] = - sig*Ts**2/(2*2*4.7*(vTOm))
+    
+            self.Q[3][0] = self.Q[0][3]
+            self.Q[3][1] = self.Q[1][3]
+            self.Q[3][2] = self.Q[2][3]
+            self.Q[3][3] = sig*Ts
+            self.Q[3][4] = 0
+        
+
+            self.Q[4][0] = self.Q[0][4]
+            self.Q[4][1] = self.Q[1][4]
+            self.Q[4][2] = self.Q[2][4]
+            self.Q[4][3] = self.Q[3][4]
+            self.Q[4][4] = sig*Ts
+
+            print(self.Q)
        return self.Q
 
