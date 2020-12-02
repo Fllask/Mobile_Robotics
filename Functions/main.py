@@ -107,9 +107,11 @@ class ComputeVision():
 
         if self.verbose:
             print("Starting vision + global navigation main loop")
+
        
         #getting the camera input
-        cap = cv2.VideoCapture(0)
+
+        cap = cv2.VideoCapture(1)
 
         #get the first frame to test
         
@@ -165,7 +167,7 @@ class ComputeVision():
         t0 = time.process_time()
         self.obstacles = self.vis.getMap()
         d['map'] = self.obstacles
-        self.pathComputed = False
+        #self.pathComputed = False
         
         self.g = Global(self.obstacles,False,self.stop)
         
@@ -195,7 +197,7 @@ class ComputeVision():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break      
 
-            if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or self.pathComputed:
+            if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or d['pathComputed']:#self.pathComputed
                 if self.verbose:
                     a = 0
                     #   print("No Path Computed")
@@ -208,7 +210,8 @@ class ComputeVision():
                 self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
                 d['path'] = self.path
                 print(self.path)
-                self.pathComputed = True
+                #self.pathComputed = True
+                d['pathComputed'] = True
             
             #if self.verbose:
                 #print("Full Vision Loop : "+str(time.process_time()-t0))
@@ -274,7 +277,7 @@ class RobotControl():
 
         Rvel = np.array([[100000000., 0.], [0.,10000000.]])
         Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
-        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,2.]])
+        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,1.2]])
         Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
 
         filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
@@ -285,7 +288,7 @@ class RobotControl():
         while go:
 
             tps1 = time.monotonic()
-            print(thym.state)
+            
             #########################################################################
             # get the position of the robot given by the camera when it is possible #
             #          if not possible set the updateWithCam bolean to False        # 
@@ -305,7 +308,11 @@ class RobotControl():
                 thym.TURN(self.th,Ts)
             elif thym.state == 'LOCAL' :
                 thym.LOCAL(self.th,Ts)
+                if thym.state == 'INIT':
+                    d['pathComputed'] = False
+                    d['path'] = False
             elif thym.state == 'INIT' :
+                print('dpath',d['path'])
                 thym.INIT(d['path'],d['visPos'])
 
 
@@ -313,6 +320,7 @@ class RobotControl():
             tps2 = time.monotonic()
             Ts=tps2-tps1
             d['fltPos'] = thym.Pos
+            print('pos_cam',pos_cam)
 
             if thym.p is not None :
                 if thym.p<3 and thym.node==len(thym.global_path)-2:
@@ -343,7 +351,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "/dev/cu.usbmodem143101"
+    robotPort = "COM7"
 
     """ Parsing stdin """
     verbose = False
@@ -366,6 +374,7 @@ if __name__ == '__main__':
     d['path'] = False
     d['map'] = False
     d['goal'] = False
+    d['pathComputed'] = False
     d['vtime'] = "0"
 
 

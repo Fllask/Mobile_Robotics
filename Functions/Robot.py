@@ -46,8 +46,12 @@ class Robot:
     
     
     def compute_pba(self,verbose = False):
+        ''' compute the parameter for the astolfi controller : 
+        self.Pos[2] is the angle theta of the robot 
+        and bref is the angle we want for the robot at the objectif '''
+        
         self.a=-self.Pos[2]+ut.compute_angle(self.Pos,self.global_path[self.node+1])
-        self.a=(m.pi+self.a)%(2*m.pi)-m.pi
+        self.a=(m.pi+self.a)%(2*m.pi)-m.pi # make sure that we get a value between -pi and pi
         self.p=ut.compute_distance(self.Pos,self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
         self.b=-self.Pos[2]-self.bref-self.a
@@ -55,36 +59,22 @@ class Robot:
             print("a : " + str(self.a) + " , b : " + str(self.b) + " , p : " + str(self.p)) 
         return self.b
 
-    # assume alpha(0)is between -pi/2 and pi/2 and stays between those two values
+    
+
+    
+
+
+        
     def astofli_controller(self,p,a,b):
+        ''' compute the derivative of rho beta and alpha'''
         p_dot=-self.kp*m.cos(a)
         a_dot=(self.kp*m.sin(a)-self.ka*a-self.kb*b)/p
         b_dot=(-self.kp*m.sin(a))/p
         return p_dot,a_dot,b_dot
-    
-    def compute_rotation(self,Ts):
-        if self.a>0:
-            w=0.3
-            self.Pos[2]=self.Pos[2]+w*Ts
-            self.a=self.a-w*Ts
-        else:
-            w=-0.3
-            self.Pos[2]=self.Pos[2]+w*Ts
-            self.a=self.a-w*Ts
-
-        self.Pos[2]=(m.pi+self.Pos[2])%(2*m.pi)-m.pi
-        self.u[0]=0
-        self.u[1]=w
-        if abs(self.a)< 0.1:
-            self.state='ASTOLFI'
-        
-        return self.a
-
-
 
 
     def compute_state_equation(self,Ts):
-        #use runge Kutta 2 for state space equation
+        ''' use runge Kutta 2 to get rho alpha and beta at time t+Ts '''
 
 
         [p_dot1,a_dot1,b_dot1]=self.astofli_controller(self.p,self.a,self.b)
@@ -103,8 +93,28 @@ class Robot:
         self.u[0]=self.kp
         self.u[1]=(self.ka*self.a+self.kb*(self.b))/self.p
 
+    
+    def compute_rotation(self,Ts):
+        ''' If alpha is not between -pi/2 and pi/2 we make the robot turn on himself before using the astolfi controller '''
+        if self.a>0:
+            w=0.3
+            self.Pos[2]=self.Pos[2]+w*Ts
+            self.a=self.a-w*Ts
+        else:
+            w=-0.3
+            self.Pos[2]=self.Pos[2]+w*Ts
+            self.a=self.a-w*Ts
+
+        self.Pos[2]=(m.pi+self.Pos[2])%(2*m.pi)-m.pi
+        self.u[0]=0
+        self.u[1]=w
+        if abs(self.a)< 0.1:
+            self.state='ASTOLFI'
+        
+        return self.a
+
     def compute_input(self):
-        #function convert the speed and angular speed to the values we need to give the robot
+        '''function convert the speed and angular speed to the values we need to give the robot'''
 
         # u[0] is the speed of the robot in cm/s
         # u[1] is the angular speed of the robot in cm/s
@@ -126,15 +136,17 @@ class Robot:
 
         
 
-    # give values to the motors of the thymio
+    
     def run_on_thymio(self,th):
+        ''' give values to the motors of the thymio'''
         th.set_var("motor.left.target", self.ML)
         th.set_var("motor.right.target", self.MR)
         
         return self.ML
 
-    # convert rho alpha and beta with x y and theta
+    
     def compute_Pos(self):
+        ''' knowing rho alpha and beta we recompute the values for x y and theta that will be send later to the filter '''
         nextpos=self.global_path[self.node+1]
         self.Pos[0]=float(nextpos[0]-self.p*m.cos(self.b+self.bref))
         self.Pos[1]=float(nextpos[1]+self.p*m.sin(self.b+self.bref))
@@ -143,62 +155,76 @@ class Robot:
         return self.Pos[0]
 
     def check(self):
+        ''' check if we have arrived at our objective and set up our next objective (next point in the global path)'''
         if self.p<5 and self.node<(len(self.global_path)-2):
-            #compute a new alpha,beta,gamma
-            self.node=self.node+1
-            self.compute_pba()
+            self.node=self.node+1   #go to the next point in the global path
+            
+            self.compute_pba()      #compute a new alpha,beta,gamma
         return self.node
 
     # FUNCTION USE FOR THE LOCAL AVOIDANCE : 
 
-    #function used to go straight
+    
+    
     def compute_straight_local(self,Ts,v):
+        ''' compute the new postition of the robot when it goes straight '''
         self.Pos[0]=self.Pos[0]+m.cos(self.Pos[2])*v*Ts
         self.Pos[1]=self.Pos[1]+m.sin(self.Pos[2])*v*Ts
         return self.u[0]
     #function used to turn left or right
     def compute_rot_local(self,Ts,w):
+        ''' compute the new angle theta of the robot when it turn on itlself'''
         self.Pos[2]=self.Pos[2]+w*Ts
         self.Pos[2]=(m.pi+self.Pos[2])%(2*m.pi)-m.pi
         return self.Pos[2]
 
-    #function use to check if we have a local obstacle
+    
     def check_localobstacle(self,th) :
-        sensor= np.array(th["prox.horizontal"])
+        ''' function use to check if we detect a local obstacle :
+        if the values of the sensor are above a treshold the robot goes in local mode'''
+
+        sensor= np.array(th["prox.horizontal"]) #get values from the sensors
         print('sensor',sensor)
-        if sum(sensor[0:4])>2000: # threshold a modifié 
+        if sum(sensor[0:4])>500: # threshold a modifi� 
             self.state='LOCAL'
             print('state',self.state)
-            right=sensor[4]+sensor[3]   #sensors at the right  
-            left=sensor[0]+sensor[1]    #sensors at the left 
+            right=sensor[4]+sensor[3]   #values of the right sensors   
+            left=sensor[0]+sensor[1]    #values of the left sensors
             if right>left:              #turn right if it feels the object on the left
                 self.turn=0
                 self.idx_sensor=(3,4)
-            else:           #turn left if it feels the object on the right 
+            else:                       #turn left if it feels the object on the right 
                 self.turn=1
                 self.idx_sensor=(1,0)
         return self.state
 
    
-    # check if we are still in localstate 0 or if we can go to localstate 1
+    
     def checkstate0(self,th):
+        ''' check if we are still in localstate 0 (turn left or right) or if we can go to localstate 1 (go straight) '''
         sensor= np.array(th["prox.horizontal"])
         if sensor[self.idx_sensor[1]]<1 and sensor[self.idx_sensor[0]]<1:
             self.locstate=1
             self.cnt=1
-            #print("state1")
         return self.locstate
 
-     # check if we are still in localstate 2 or if we can go to localstate 0
+     
     def checkstate2(self,th):
+        '''check if we are still in localstate 2 (turn right or left) or if we can go to localstate 0 (turn left or right)
+        turn in the direction of the obstacle until we feel it then go back in local state 0 to turn in the other side
+        this allow us to stay close to get around the obstacle'''
+
         sensor= np.array(th["prox.horizontal"])
-        if sensor[self.idx_sensor[1]]>1000:
+        if sensor[self.idx_sensor[1]]>700:
             self.locstate=0
             #print("state2to3")
         return self.locstate
 
-    # check if we still need to be in local avoidance or if we can go in global avoidance
+    
     def checkout(self,th):
+        ''' check if we still need to be in local avoidance or if we can go in global avoidance 
+        if the thymio is pointing to the next goal and that we don't feel any local obstacle we go back in global avoidance'''
+
         sensor= np.array(th["prox.horizontal"])
         if sensor[self.idx_sensor[1]]<1:
             angle=ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
@@ -225,10 +251,9 @@ class Robot:
             return self.state
         if pos_init is not False :
             self.Pos = pos_init
-            print(self.Pos)
         else : 
             return self.state
-
+        self.node = 0
         self.state = 'ASTOLFI'
         return self.state
     
@@ -255,7 +280,7 @@ class Robot:
         
         # check if we detect a local obstacle
         self.check_localobstacle(th)
-
+        
         if self.state == 'LOCAL' :
             return
 
@@ -295,7 +320,8 @@ class Robot:
 
     def TURN(self,th,Ts):
 
-        '''if abs(alpha)>pi/2 we can't use astolfi and we first need to rotate the robot on itslef. We make it turn on  itself until alpha is close to 0
+        '''if abs(alpha)>pi/2 we can't use astolfi and we first need to rotate the robot on itslef. We make it turn on  itself until alpha 
+            is close to 0
            th : serial link to the thymio
            Ts : time of one iteration of the loop while (we recompute every Ts)'''
 
@@ -312,8 +338,12 @@ class Robot:
         return self.state
 
     def LOCAL(self,th,Ts):
-        ''' we get around the local obstacle  until we we don't detect any obstacle in front of the robot when the robot is oriented in the direction of the goal
-        the robot will enter in wait mode until we recompute a global path 
+        ''' we get around the local obstacle  until we we don't detect any obstacle in front of the robot when the robot is oriented 
+        in the direction of the goal
+        the robot will enter in init mode until we recompute a global path.
+        TO get around the obstacle the robot will use 3 movements: go straight turn left and turn right. it turn first to avoid
+        the obstace then goes straight during 2 second then turn in the other size to see if we are still close to the obstacle. 
+
         th : serial link to the thymio
         Ts : time of one iteration of the loop while (we recompute every Ts)
         '''
