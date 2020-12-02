@@ -185,7 +185,7 @@ class Robot:
 
         sensor= np.array(th["prox.horizontal"]) #get values from the sensors
         print('sensor',sensor)
-        if sum(sensor[0:4])>500: # threshold a modifié 
+        if sum(sensor[0:4])>500: # threshold a modifiï¿½ 
             self.state='LOCAL'
             print('state',self.state)
             right=sensor[4]+sensor[3]   #values of the right sensors   
