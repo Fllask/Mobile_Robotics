@@ -11,7 +11,7 @@ import math
 import numpy as np
 import time
 CAMERA = "ANDROID FLASK"
-cap = cv2.VideoCapture(2)
+cap = cv2.VideoCapture(1)
 
 while(1):
     
@@ -19,7 +19,7 @@ while(1):
     #img = cv2.imread('../sample_pictures/new color.jpg')
     img = v.preprocess(img)
     imgbgr = cv2.cvtColor(img,cv2.COLOR_HSV2BGR)
-    filterg = v.colorfilter("YELLOW", camera =CAMERA)
+    filterg = v.colorfilter("BLACK", camera =CAMERA)
     mask = filterg.get_mask(img)
     cv2.imshow('mask',mask)
     GC, flag = v.getCentroid(mask)

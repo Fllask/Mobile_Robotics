@@ -1,6 +1,7 @@
 {
-  "Interpreter": "env\\Scripts\\python.exe",
-  "python jedi.Enabled": true,
-  "SuppressEnvironmentCreationPrompt": true,
-  "TestFramework": "Pytest"
+    "Interpreter": "env\\Scripts\\python.exe",
+    "python jedi.Enabled": true,
+    "SuppressEnvironmentCreationPrompt": true,
+    "editor.renderIndentGuides": true,
+    "TestFramework": "Pytest"
 }

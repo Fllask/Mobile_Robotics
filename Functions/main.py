@@ -107,9 +107,11 @@ class ComputeVision():
 
         if self.verbose:
             print("Starting vision + global navigation main loop")
+
        
         #getting the camera input
-        cap = cv2.VideoCapture(0)
+
+        cap = cv2.VideoCapture(1)
 
         #get the first frame to test
         
@@ -274,7 +276,7 @@ class RobotControl():
 
         Rvel = np.array([[100000000., 0.], [0.,10000000.]])
         Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
-        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,2.]])
+        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,1.2]])
         Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
 
         filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
@@ -285,7 +287,7 @@ class RobotControl():
         while go:
 
             tps1 = time.monotonic()
-            print(thym.state)
+            
             #########################################################################
             # get the position of the robot given by the camera when it is possible #
             #          if not possible set the updateWithCam bolean to False        # 
@@ -313,6 +315,7 @@ class RobotControl():
             tps2 = time.monotonic()
             Ts=tps2-tps1
             d['fltPos'] = thym.Pos
+            print('pos_cam',pos_cam)
 
             if thym.p is not None :
                 if thym.p<3 and thym.node==len(thym.global_path)-2:
@@ -343,7 +346,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "/dev/cu.usbmodem143101"
+    robotPort = "COM7"
 
     """ Parsing stdin """
     verbose = False
