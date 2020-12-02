@@ -50,7 +50,7 @@ class Robot:
         self.a=(m.pi+self.a)%(2*m.pi)-m.pi
         print('theta',self.Pos [2])
         print('-beta ref',ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1]))
-        self.p=ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
+        self.p= ut.compute_distance(self.Pos[0:2],self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
         self.b=-self.Pos[2]-self.bref-self.a 
         print('a',self.a)
@@ -227,7 +227,7 @@ class Robot:
         else :
             return self.state
         if pos_init is not False :
-            self.pos_init = pos_init
+            self.Pos = pos_init
         else : 
             return self.state
 
