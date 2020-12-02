@@ -184,7 +184,6 @@ class Robot:
         if the values of the sensor are above a treshold the robot goes in local mode'''
 
         sensor= np.array(th["prox.horizontal"]) #get values from the sensors
-        print('sensor',sensor)
         if sensor[0]>1000 or sensor[1]>1000 or sensor[2]>3000 or sensor[3]>1000 or sensor[4]>1000: # threshold a modifi� 
             self.state='LOCAL'
             print('state',self.state)
@@ -225,17 +224,17 @@ class Robot:
         if the thymio is pointing to the next goal and that we don't feel any local obstacle we go back in global avoidance'''
 
         sensor= np.array(th["prox.horizontal"])
-        if sensor[self.idx_sensor[1]]<1:
-            angle=ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
+        #if sensor[self.idx_sensor[1]]<1:
+        angle=ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
 
-            if abs(self.Pos[2]-angle)<0.02:
-                self.state='INIT'
-                self.u[0]=0
-                self.u[1]=0
+        if abs(self.Pos[2]-angle)<0.1:
+            self.state='INIT'
+            self.u[0]=0
+            self.u[1]=0
 
-                th.set_var('motor.left.target',0)
-                th.set_var('motor.right.target',0)
-                self.locstate=0
+            th.set_var('motor.left.target',0)
+            th.set_var('motor.right.target',0)
+            self.locstate=0
                 
 
         return self.state
@@ -313,7 +312,7 @@ class Robot:
             time.sleep(0.1)
 
             # check if we have a valid data for the measurement of the position in the camera
-            update_cam = False if pos_cam is False else True
+            update_cam = False if pos_cam is False or (pos_cam[0] == 0) else True
 
             # get our pos with the filter
             filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
@@ -339,7 +338,7 @@ class Robot:
 
         return self.state
 
-    def LOCAL(self,th,Ts):
+    def LOCAL(self,th,Ts, filter, pos_cam):
         ''' we get around the local obstacle  until we we don't detect any obstacle in front of the robot when the robot is oriented 
         in the direction of the goal
         the robot will enter in init mode until we recompute a global path.
@@ -399,5 +398,14 @@ class Robot:
 
         # sleep 0.1 second :
         time.sleep(0.1)
+
+        #[give : x,y,theta,vr,vl] to the filter : 
+        vect = self.get_states()
+
+        # check if we have a valid data for the measurement of the position in the camera
+        update_cam = False if pos_cam is False or (pos_cam[0] == 0) else True
+
+        # get our pos with the filter
+        filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
 
         return self.state

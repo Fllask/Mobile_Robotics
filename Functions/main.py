@@ -308,7 +308,7 @@ class RobotControl():
             elif thym.state == 'TURN' :
                 thym.TURN(self.th,Ts)
             elif thym.state == 'LOCAL' :
-                thym.LOCAL(self.th,Ts)
+                thym.LOCAL(self.th,Ts, filter, pos_cam)
                 if thym.state == 'INIT':
                     d['pathComputed'] = False
                     d['path'] = False
