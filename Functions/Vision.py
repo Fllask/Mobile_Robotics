@@ -4,6 +4,7 @@ import numpy as np
 from skimage import measure, morphology,exposure
 from scipy import linalg, ndimage
 import math
+import pickle
 
 DEFAULT = 0
 BIG = 1
@@ -105,6 +106,21 @@ class Vision:
         if invalid:
             finish = False
         return finish, not invalid
+
+
+""" allows for saving of color bands in an external file"""
+class colorpreset:
+    def __init__(self, red, yellow, blue, green, robot, black, finish):
+        self.bands = {"red" : red,
+        "yellow" : yellow,
+        "blue" : blue,
+        "green" : green,
+        "robot" : robot,
+        "black" : black,
+        "finish" : finish}
+
+    def save(self, name = "colors.p"):
+        pickle.dump(self.bands ,  open( name, "wb" ))
     
 class colorfilter:
     def __init__(self, color, camera = "XT3"):
