@@ -166,7 +166,7 @@ class Robot:
     def check_localobstacle(self,th) :
         sensor= np.array(th["prox.horizontal"])
         print('sensor',sensor)
-        if sum(sensor[0:4])>2000: # threshold a modifié 
+        if sum(sensor[0:4])>500: # threshold a modifié 
             self.state='LOCAL'
             print('state',self.state)
             right=sensor[4]+sensor[3]   #sensors at the right  
@@ -192,7 +192,7 @@ class Robot:
      # check if we are still in localstate 2 or if we can go to localstate 0
     def checkstate2(self,th):
         sensor= np.array(th["prox.horizontal"])
-        if sensor[self.idx_sensor[1]]>1000:
+        if sensor[self.idx_sensor[1]]>700:
             self.locstate=0
             #print("state2to3")
         return self.locstate
@@ -225,10 +225,9 @@ class Robot:
             return self.state
         if pos_init is not False :
             self.Pos = pos_init
-            print(self.Pos)
         else : 
             return self.state
-
+        self.node = 0
         self.state = 'ASTOLFI'
         return self.state
     

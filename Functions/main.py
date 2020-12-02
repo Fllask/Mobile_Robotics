@@ -167,7 +167,7 @@ class ComputeVision():
         t0 = time.process_time()
         self.obstacles = self.vis.getMap()
         d['map'] = self.obstacles
-        self.pathComputed = False
+        #self.pathComputed = False
         
         self.g = Global(self.obstacles,False,self.stop)
         
@@ -197,7 +197,7 @@ class ComputeVision():
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 break      
 
-            if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or self.pathComputed:
+            if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or d['pathComputed']:#self.pathComputed
                 if self.verbose:
                     a = 0
                     #   print("No Path Computed")
@@ -210,7 +210,8 @@ class ComputeVision():
                 self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
                 d['path'] = self.path
                 print(self.path)
-                self.pathComputed = True
+                #self.pathComputed = True
+                d['pathComputed'] = True
             
             #if self.verbose:
                 #print("Full Vision Loop : "+str(time.process_time()-t0))
@@ -307,7 +308,11 @@ class RobotControl():
                 thym.TURN(self.th,Ts)
             elif thym.state == 'LOCAL' :
                 thym.LOCAL(self.th,Ts)
+                if thym.state == 'INIT':
+                    d['pathComputed'] = False
+                    d['path'] = False
             elif thym.state == 'INIT' :
+                print('dpath',d['path'])
                 thym.INIT(d['path'],d['visPos'])
 
 
@@ -369,6 +374,7 @@ if __name__ == '__main__':
     d['path'] = False
     d['map'] = False
     d['goal'] = False
+    d['pathComputed'] = False
     d['vtime'] = "0"
 
 
