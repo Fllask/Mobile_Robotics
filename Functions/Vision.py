@@ -139,7 +139,7 @@ class colorfilter:
                 self.band = np.array([[150,170],[100,255],[100,255]])
                 self.morph = NONE
             if color == "BLACK":
-                 self.band = np.array([[0,179],[0,255],[0,30]])
+                 self.band = np.array([[0,179],[0,255],[0,50]])
                  self.morph = BIG
             if color == "FINISH":
                 self.band = np.array([[80,105],[100,255],[40,255]])
@@ -172,7 +172,7 @@ class colorfilter:
         elif self.morph == NONE:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
         return cv2.UMat(mask)
-
+        
 def preprocess(img):
     imgsmall = cv2.resize(img,(624,416))
     #imgsmooth = cv2.UMat(imgsmall)
