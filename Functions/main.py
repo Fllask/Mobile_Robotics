@@ -179,7 +179,7 @@ class ComputeVision():
         while True: 
             t0 = time.process_time() #we time each loop to get an idea of performance
             # loading new image
-            ret, self.img = cap.read()
+            ret, self.img = cv2.imread("sample.py") #cap.read()
             self.vis.setframe(self.img) 
             
             ## getting robot coordinates
@@ -193,13 +193,10 @@ class ComputeVision():
 
             ## displaying whatever was computed
             disp = self.display(d)
-            cv2.imshow('frame',disp)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break      
-
+            c
             if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or d['pathComputed']:#self.pathComputed
                 if self.verbose:
-                    a = 0
+                    pass
                     #   print("No Path Computed")
                 #     print("stopB->"+str(isinstance(self.stop,bool)))
                 #     print("rbt_posB->"+str(isinstance(self.rbt_pos,bool)))
