@@ -33,7 +33,7 @@ class Filtering:
         innovation = zk - np.dot(H,X_est)
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        print('K\n',K)
+        #print('K\n',K)
         X_est = X_est + np.dot(K,innovation)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
         return X_est, P_est

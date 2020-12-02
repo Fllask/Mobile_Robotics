@@ -185,7 +185,7 @@ class Robot:
 
         sensor= np.array(th["prox.horizontal"]) #get values from the sensors
         print('sensor',sensor)
-        if sum(sensor[0:4])>500: # threshold a modifi� 
+        if sensor[0]>1000 or sensor[1]>1000 or sensor[2]>3000 or sensor[3]>1000 or sensor[4]>1000: # threshold a modifi� 
             self.state='LOCAL'
             print('state',self.state)
             right=sensor[4]+sensor[3]   #values of the right sensors   
@@ -236,6 +236,7 @@ class Robot:
 
                 th.set_var('motor.left.target',0)
                 th.set_var('motor.right.target',0)
+                self.locstate=0
         return self.state
 
     def INIT(self,global_path, pos_init) : 
@@ -370,6 +371,7 @@ class Robot:
             self.compute_straight_local(Ts,self.u[0])
             if self.cnt==20:
                 self.locstate=2
+            self.checkout(th)
            
         # turn right until it sense the obstacle to stay close to the obstacle 
         if self.locstate==2:

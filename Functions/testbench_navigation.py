@@ -20,11 +20,11 @@ time.sleep(3) # To make sure the Thymio has had time to connect
 
 # GET THE GLOBAL PATH WITH THE CAMERA AND THE GLOBAL PATH CLASS : 
 
-global_path = [(100,100),(75,25),(50,50)]
+global_path = [(0.,0.),(500.,0.)]
 
 # Initialise robot class
 
-Init_pos = np.array([100.,100.,0])
+Init_pos = np.array([0.,0.,0])
 Ts = 0.1
 kp = 3    #0.15   #0.5
 ka = 35  #0.4    #0.8
@@ -36,7 +36,7 @@ wTOm=(200*180)/(80*m.pi) #130.5 #
 thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
 
 # Initialise Filtering class
-Rvel = np.array([[1.53, 0.], [0.,1.53]])
+Rvel = np.array([[10000, 0.], [0.,10000]])
 Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
 Rcam = np.array([[0.000001,0.,0.],[0.,0.000001,0.],[0.,0.,0.000001]])
 Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
