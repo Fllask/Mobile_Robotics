@@ -227,7 +227,10 @@ class Robot:
         #if sensor[self.idx_sensor[1]]<1:
         angle=ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
 
-        if abs(self.Pos[2]-angle)<0.1:
+        test=(m.pi+self.Pos[2]-angle)%2*m.pi-m.pi
+        test=abs(test)
+        print(test)
+        if abs(test)<0.1:
             self.state='INIT'
             self.u[0]=0
             self.u[1]=0
@@ -411,13 +414,14 @@ class Robot:
         # sleep 0.1 second :
         time.sleep(0.1)
 
-        #[give : x,y,theta,vr,vl] to the filter : 
-        vect = self.get_states()
+        if self.locstate==0:
+            #[give : x,y,theta,vr,vl] to the filter : 
+            vect = self.get_states()
 
-        # check if we have a valid data for the measurement of the position in the camera
-        update_cam = False if pos_cam is False or (pos_cam[0] == 0) else True
+            # check if we have a valid data for the measurement of the position in the camera
+            update_cam = False if pos_cam is False or (pos_cam[0] == 0) else True
 
-        # get our pos with the filter
-        filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
+            # get our pos with the filter
+            filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
 
         return self.state

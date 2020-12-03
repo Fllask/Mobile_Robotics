@@ -132,7 +132,7 @@ class ComputeVision():
 
         while(initfailed):
             ret,frame = cap.read()
-            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True, setpercentiles = True)
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True, setextval = True)
             initfailed = self.vis.invalid
             flag = False
         
@@ -267,8 +267,8 @@ class RobotControl():
 
         Init_pos = False
         Ts = 0.1
-        kp = 1.5 #3    #0.15   #0.5
-        ka = 18 #35  #0.4    #0.8
+        kp = 2 #3    #0.15   #0.5
+        ka = 22 #35  #0.4    #0.8
         kb = -4 #-8   #-0.07  #-0.2
         vTOm=31.5 #30.30
         wTOm=(200*180)/(80*math.pi) #130.5 #
@@ -327,7 +327,7 @@ class RobotControl():
             #print('pos_cam',pos_cam)
 
             if thym.p is not None :
-                if thym.p<3 and thym.node==len(thym.global_path)-2:
+                if thym.p<5 and thym.node==len(thym.global_path)-2:
                     self.th.set_var("motor.left.target", 0)
                     self.th.set_var("motor.right.target", 0)
                     print('FININSH!!!!')
