@@ -111,7 +111,7 @@ class ComputeVision():
        
         #getting the camera input
 
-        cap = cv2.VideoCapture(1)
+        cap = cv2.VideoCapture(0)
 
         #get the first frame to test
         
@@ -278,7 +278,7 @@ class RobotControl():
 
         Rvel = np.array([[100000000., 0.], [0.,10000000.]])
         Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
-        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,1.2]])
+        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,0.3]])
         Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
 
         filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
@@ -352,7 +352,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "COM7"
+    robotPort = "/dev/cu.usbmodem144401"
 
     """ Parsing stdin """
     verbose = False
