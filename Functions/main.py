@@ -278,7 +278,7 @@ class RobotControl():
 
         Rvel = np.array([[100000000., 0.], [0.,10000000.]])
         Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
-        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,1.2]])
+        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,0.3]])
         Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
 
         filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
