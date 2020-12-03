@@ -293,8 +293,8 @@ def watershed(event, y_ori, x_ori, flags, img):
     if event == cv2.EVENT_LBUTTONDOWN:
         global mask_watershed
         difhmax = 10
-        difsmax = 70
-        difvmax = 70
+        difsmax = 30
+        difvmax = 30
         flagWrap = False
         listnew = [(x_ori,y_ori)]
         hue_ori = img[x_ori,y_ori,0]
