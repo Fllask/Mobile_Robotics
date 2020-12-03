@@ -111,7 +111,7 @@ class ComputeVision():
        
         #getting the camera input
 
-        cap = cv2.VideoCapture(1)
+        cap = cv2.VideoCapture(0)
 
         #get the first frame to test
         
@@ -352,7 +352,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "COM7"
+    robotPort = "/dev/cu.usbmodem144401"
 
     """ Parsing stdin """
     verbose = False
