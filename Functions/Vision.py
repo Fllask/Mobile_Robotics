@@ -9,10 +9,12 @@ import pickle
 DEFAULT = 0
 BIG = 1
 NONE = 2
-
 mask_watershed = 0
-valmin = 20
-valmax = 100
+
+
+IDCAM = 2
+valmin = 50
+valmax = 130
 def getTransformimage(image,camera,prevtrans,valext, setmanually = False):
     #return a geometric transform (usable with cv2.warpPerspective)
     image = preprocess(image,valext)
@@ -138,8 +140,11 @@ class Vision:
 
 
 def adjustlum(img,valext):
-    cv2.namedWindow("preprocess")
-    cv2.namedWindow("corner masks")
+    cv2.namedWindow("preprocess",cv2.WINDOW_NORMAL)
+    cv2.namedWindow("obstacles masks",cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("obstacles masks", 312, 208)
+    cv2.namedWindow("color masks",cv2.WINDOW_NORMAL)
+    cv2.resizeWindow("color masks", 312, 208)
     cv2.createTrackbar("max", "preprocess" , valext[1], 255, on_trackbar_max)
     cv2.createTrackbar("min", "preprocess" , valext[0], 255, on_trackbar_min)
     print("Select the equalization, then press v to validate")
@@ -147,8 +152,8 @@ def adjustlum(img,valext):
 
         
         imgprep = preprocess(img,extval= (valmin,valmax))
-        
-        cv2.imshow("preprocess",cv2.cvtColor(imgprep,cv2.COLOR_HSV2BGR))
+        img_disp = cv2.cvtColor(imgprep,cv2.COLOR_HSV2BGR)
+        cv2.imshow("preprocess",img_disp)
         
         maskg = colorfilter("GREEN",camera = "ANDROID FLASK")
         masky = colorfilter("YELLOW",camera = "ANDROID FLASK")
@@ -156,20 +161,28 @@ def adjustlum(img,valext):
         maskb = colorfilter("BLUE",camera = "ANDROID FLASK")
         maskrobot = colorfilter("ROBOT",camera = "ANDROID FLASK")
         maskfinish = colorfilter("FINISH",camera = "ANDROID FLASK")
+        maskobst = colorfilter("BLACK",camera = "ANDROID FLASK")
         masktot = maskg.get_mask(imgprep)
         masktot = cv2.bitwise_or(masktot,masky.get_mask(imgprep))
         masktot = cv2.bitwise_or(masktot,maskr.get_mask(imgprep))
         masktot = cv2.bitwise_or(masktot,maskb.get_mask(imgprep))
         masktot = cv2.bitwise_or(masktot,maskrobot.get_mask(imgprep))
         masktot = cv2.bitwise_or(masktot,maskfinish.get_mask(imgprep))
-
-        
-        cv2.imshow("corner masks",masktot)
+        maskobst = maskobst.get_mask(imgprep)
+        cv2.imshow("obstacles masks",maskobst)
+        img_mask = cv2.bitwise_and(img_disp,img_disp, mask= masktot.get().astype("uint8"))
+        cv2.imshow("color masks",img_mask)
         key = cv2.waitKey(1)
         if key & 0XFF == ord('v'):
             break
+        if key & 0XFF == ord('c'):
+            cap = cv2.VideoCapture(IDCAM)
+            ret, newimg = cap.read()
+            if ret:
+                img = newimg
     cv2.destroyWindow("corner masks")
     cv2.destroyWindow("preprocess")
+    cv2.destroyWindow("color masks")
     return (valmin,valmax)
 def on_trackbar_max(val):
     global valmax
@@ -181,7 +194,7 @@ def on_trackbar_min(val):
 
 
 class colorfilter:
-    def __init__(self, color, camera = "XT3"):
+    def __init__(self, color, camera = "ANDROID FLASK"):
         self.morph = DEFAULT
         self.camera = camera
         self.color = color
@@ -212,10 +225,10 @@ class colorfilter:
             if color == "GREEN":
                  self.band = np.array([[41,78],[100,255],[50,255]])
             if color == "ROBOT":
-                self.band = np.array([[150,170],[100,255],[100,255]])
+                self.band = np.array([[150,170],[70,255],[80,255]])
                 self.morph = NONE
             if color == "BLACK":
-                 self.band = np.array([[0,179],[0,255],[0,70]])#50
+                 self.band = np.array([[0,179],[0,255],[0,50]])
                  self.morph = BIG
             if color == "FINISH":
                 self.band = np.array([[80,105],[100,255],[70,255]])
@@ -367,7 +380,7 @@ def createMap(img,R_ROBOT = 50,camera= "XT3"):
     maskpoly = filter_poly.get_mask(img)
     # cv2.imshow("mask poly", maskpoly)
     margin = cv2.dilate(maskpoly,cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3))\
-                        ,iterations = 20,borderType =cv2.BORDER_CONSTANT,borderValue = 0)
+                        ,iterations = 30,borderType =cv2.BORDER_CONSTANT,borderValue = 0)
     margin = cv2.dilate(margin,cv2.getStructuringElement(cv2.MORPH_RECT, (border_size,border_size))
                         ,iterations = 1,borderType = cv2.BORDER_CONSTANT,borderValue = 0)
 
@@ -405,14 +418,28 @@ def getRobotPos(imageBin, verbose = 0,display = 1):
     if display:
         cv2.imshow("mask",imageBin*255)
     valid = True
-    moments = measure.moments(imageBin, order = 3)
+    moments = measure.moments(imageBin, order = 1)
     if moments[0,0]>800:
         centroid = np.array([moments[0,1]/moments[0,0], moments[1,0]/moments[0,0]])
-        varx = moments[0,2]/moments[0,0]-centroid[0]**2
-        vary = moments[2,0]/moments[0,0]-centroid[1]**2
-        varxy = moments[1,1]/moments[0,0]-centroid[0]*centroid[1]
         
-        #check the variance of the image
+        #now that we have the center, we segment to cut the  and reduce the computation time
+        segsize = 40
+        imgsegmented = imageBin[int(centroid[1]-segsize):int(centroid[1]+segsize)\
+                                ,int(centroid[0]-segsize):int(centroid[0]+segsize)]
+        imgclean = cv2.morphologyEx(imgsegmented, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
+        
+        momentseg = measure.moments(imgclean, order = 2)
+        if momentseg[0,0]<50:
+            if verbose:
+                print("centroid error too dispersed")
+                return False,False
+        centroidseg = np.array([momentseg[0,1]/momentseg[0,0], momentseg[1,0]/momentseg[0,0]])
+        varx = momentseg[0,2]/momentseg[0,0]-centroidseg[0]**2
+        vary = momentseg[2,0]/momentseg[0,0]-centroidseg[1]**2
+        varxy = momentseg[1,1]/momentseg[0,0]-centroidseg[0]*centroidseg[1]
+        if display:
+            cv2.imshow("seg",imgclean*255)
+        #check the variance of the image segmented
         if max(varx,vary)>2*imageBin.size**0.5:
             if verbose:
                 print("invalide coord:noise")
@@ -424,15 +451,11 @@ def getRobotPos(imageBin, verbose = 0,display = 1):
             phi = math.atan(2*varxy/(varx-vary))/2 +(varx<vary)*math.pi/2
         if verbose:
             print("phi(without correction): "+str(phi))
-        #check direction
-        imgsegmented = imageBin[int(centroid[1]-50):int(centroid[1]+50)\
-                                ,int(centroid[0]-50):int(centroid[0]+50)]
-        
-        # print(imgsegmented.shape)
-        #cv2.imshow("seg",imgsegmented*255)
-        # print(phi)
+            
+        #rotate the segmented image on the axe x to check the direction by using the 
+        #assymetry of the shape
         imgrot = ndimage.rotate(imgsegmented,phi*180/math.pi, reshape = False)
-
+        
         newmoments = measure.moments(imgrot)
         cm03 = newmoments[0,3] \
                -3*newmoments[0,2]*newmoments[0,1]/newmoments[0,0]\
@@ -443,7 +466,8 @@ def getRobotPos(imageBin, verbose = 0,display = 1):
         phi = (phi+math.pi)%(2*math.pi)-math.pi
         if verbose:
             print("phi (with correction):"+str(phi))
-        pos = np.append(centroid,phi)
+        centroidcor = centroid+centroidseg-[segsize,segsize]
+        pos = np.append(centroidcor,phi)
         pos[0:2] = pos[0:2]/5
     else:
         if verbose:
