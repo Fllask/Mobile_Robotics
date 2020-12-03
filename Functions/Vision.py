@@ -215,7 +215,7 @@ class colorfilter:
                 self.band = np.array([[150,170],[100,255],[100,255]])
                 self.morph = NONE
             if color == "BLACK":
-                 self.band = np.array([[0,179],[0,255],[0,50]])
+                 self.band = np.array([[0,179],[0,255],[0,70]])#50
                  self.morph = BIG
             if color == "FINISH":
                 self.band = np.array([[80,105],[100,255],[70,255]])
