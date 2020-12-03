@@ -26,11 +26,11 @@ global_path = [(0.,0.),(500.,0.)]
 
 Init_pos = np.array([0.,0.,0])
 Ts = 0.1
-kp = 3    #0.15   #0.5
-ka = 35  #0.4    #0.8
-kb = -8   #-0.07  #-0.2
+kp = 1.5 #3    #0.15   #0.5
+ka = 18 #35  #0.4    #0.8
+kb = -4 #-8   #-0.07  #-0.2
 
-vTOm=31.5 #30.30
+vTOm=30.30
 wTOm=(200*180)/(80*m.pi) #130.5 #
 
 thym = Robot(global_path,Init_pos,Ts, kp,ka,kb,vTOm,wTOm)
@@ -60,13 +60,14 @@ while thym.go:
     elif thym.state == 'TURN' :
         thym.TURN(th,Ts)
     elif thym.state == 'LOCAL' :
-        thym.LOCAL(th,Ts)
+        thym.LOCAL(th,Ts,filter,pos_cam)
     elif thym.state == 'INIT' :
         thym.INIT(global_path,Init_pos)
     
     tps2 = time.monotonic()
     Ts=tps2-tps1
 
+    print(thym.Pos)
     # check if we arrive at the goal 
     if thym.p<3 and thym.node==len(thym.global_path)-2:
         th.set_var("motor.left.target", 0)

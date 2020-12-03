@@ -140,7 +140,7 @@ class Robot:
     def run_on_thymio(self,th):
         ''' give values to the motors of the thymio'''
         th.set_var("motor.left.target", self.ML)
-        th.set_var("motor.right.target", self.MR)
+        th.set_var("motor.right.target", self.MR+2) # to compensate for error between the two wheels
         
         return self.ML
 
@@ -223,7 +223,7 @@ class Robot:
         ''' check if we still need to be in local avoidance or if we can go in global avoidance 
         if the thymio is pointing to the next goal and that we don't feel any local obstacle we go back in global avoidance'''
 
-        sensor= np.array(th["prox.horizontal"])
+        #sensor= np.array(th["prox.horizontal"])
         #if sensor[self.idx_sensor[1]]<1:
         angle=ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
 
@@ -365,7 +365,7 @@ class Robot:
         # go straight during 20 loop :
         if self.locstate==1:
             self.cnt=self.cnt+1
-            self.u[0]=3 # go straight
+            self.u[0]=2 # go straight
             self.u[1]=0
             # go straight
             self.compute_straight_local(Ts,self.u[0])
