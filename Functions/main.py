@@ -132,7 +132,7 @@ class ComputeVision():
 
         while(initfailed):
             ret,frame = cap.read()
-            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True)
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True, setpercentiles = True)
             initfailed = self.vis.invalid
             flag = False
         
@@ -267,9 +267,9 @@ class RobotControl():
 
         Init_pos = False
         Ts = 0.1
-        kp = 3    #0.15   #0.5
-        ka = 35  #0.4    #0.8
-        kb = -8   #-0.07  #-0.2
+        kp = 1.5 #3    #0.15   #0.5
+        ka = 18 #35  #0.4    #0.8
+        kb = -4 #-8   #-0.07  #-0.2
         vTOm=31.5 #30.30
         wTOm=(200*180)/(80*math.pi) #130.5 #
         thym = Robot(False,False,Ts, kp,ka,kb,vTOm,wTOm)
@@ -285,9 +285,9 @@ class RobotControl():
 
         init = False
         go=1
-
+        cnt = 1
         while go:
-
+            cnt += 1
             tps1 = time.monotonic()
             
             #########################################################################
@@ -295,9 +295,12 @@ class RobotControl():
             #          if not possible set the updateWithCam bolean to False        # 
             #########################################################################
 
-            pos_cam = np.array(d['visPos'],ndmin=2).T
-
-
+            
+            if not cnt%10 : 
+                pos_cam = np.array(d['visPos'],ndmin=2).T
+            else :
+                pos_cam = False
+            print(pos_cam)
             #########################################################################
             #                                                                       #
             #                           FSM of the Robot                            #
@@ -306,7 +309,7 @@ class RobotControl():
             if thym.state =='ASTOLFI' : 
                 thym.ASTOLFI(self.th,Ts, filter,pos_cam)
             elif thym.state == 'TURN' :
-                thym.TURN(self.th,Ts)
+                thym.TURN(self.th,Ts, filter, pos_cam)
             elif thym.state == 'LOCAL' :
                 thym.LOCAL(self.th,Ts, filter, pos_cam)
                 if thym.state == 'INIT':
@@ -316,7 +319,7 @@ class RobotControl():
                 #print('dpath',d['path'])
                 thym.INIT(d['path'],d['visPos'])
 
-
+            print(thym.state)
 
             tps2 = time.monotonic()
             Ts=tps2-tps1

@@ -206,10 +206,10 @@ class colorfilter:
             if color == "GREEN":
                  self.band = np.array([[41,78],[100,255],[50,255]])
             if color == "ROBOT":
-                self.band = np.array([[150,170],[100,255],[100,255]])
+                self.band = np.array([[150,170],[70,255],[50,255]])
                 self.morph = NONE
             if color == "BLACK":
-                 self.band = np.array([[0,179],[0,255],[0,70]])#50
+                 self.band = np.array([[0,179],[0,255],[0,50]])#50
                  self.morph = BIG
             if color == "FINISH":
                 self.band = np.array([[80,105],[100,255],[70,255]])
@@ -244,8 +244,9 @@ class colorfilter:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((6,6)).astype("uint8"))
         elif self.morph == DEFAULT:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((15,15)).astype("uint8"))
-        # elif self.morph == NONE:
-        #     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
+        elif self.morph == NONE:
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5,5)).astype("uint8"))
         return cv2.UMat(mask)
         
     

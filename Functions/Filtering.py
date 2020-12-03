@@ -88,7 +88,7 @@ class Filtering:
         self.compute_Q(Ts, cov_type = {'iso' : 0.5,
                                        'sig1': 0.5,
                                        'sig2': 0.5,
-                                       'sig3': 0.5,
+                                       'sig3': 0.02,
                                        'sig4': 0.6,
                                        'sig5': 0.6
                                        })

@@ -319,7 +319,7 @@ class Robot:
             return self.Pos
         
 
-    def TURN(self,th,Ts):
+    def TURN(self,th,Ts,filter, pos_cam):
 
         '''if abs(alpha)>pi/2 we can't use astolfi and we first need to rotate the robot on itslef. We make it turn on  itself until alpha 
             is close to 0
@@ -335,6 +335,18 @@ class Robot:
 
         # sleep 0.1 second :
         time.sleep(0.1)
+
+        #[give : x,y,theta,vr,vl] to the filter : 
+        vect = self.get_states()
+
+        # sleep 0.1 second :
+        time.sleep(0.1)
+
+        # check if we have a valid data for the measurement of the position in the camera
+        update_cam = False if pos_cam is False or (pos_cam[0] == 0) else True
+
+        # get our pos with the filter
+        filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
 
         return self.state
 
