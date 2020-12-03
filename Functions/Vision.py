@@ -11,16 +11,37 @@ BIG = 1
 NONE = 2
 
 mask_watershed = 0
-
-def getTransform(image,camera,prevtrans, setmanually = False):
-    #return a geometric transform (usable with cv2.warpPerspective or with )
-    image = preprocess(image)
+pmin = 0
+pmax = 100
+def getTransform(image,camera,prevtrans,percentiles, setmanually = False):
+    #return a geometric transform (usable with cv2.warpPerspective)
+    image = preprocess(image,percentiles)
     invalid = False
     filr = colorfilter("RED",camera)
     filg = colorfilter("GREEN",camera)
     filb = colorfilter("BLUE",camera)
     fily = colorfilter("YELLOW",camera)
     
+    
+    maskg= filg.get_mask(image)
+    TL,fg = getCentroid(maskg)
+    if fg:
+        print("GREEN ERROR")
+        if setmanually:
+            TL = manually_get_centroid(image, preprocessed=True)
+        else:
+            invalid = True
+
+    masky= fily.get_mask(image)
+    TR,fy = getCentroid(masky)
+    if fy:
+        print("YELLOW ERROR")
+        if setmanually:
+            TR = manually_get_centroid(image, preprocessed=True)
+        else:
+            invalid = True
+            
+            
     maskr= filr.get_mask(image)
     BL,fr = getCentroid(maskr)
     if fr:
@@ -30,14 +51,7 @@ def getTransform(image,camera,prevtrans, setmanually = False):
         else:
             invalid = True
 
-    maskg= filg.get_mask(image)
-    TL,fg = getCentroid(maskg)
-    if fg:
-        print("GREEN ERROR")
-        if setmanually:
-            TL = manually_get_centroid(image, preprocessed=True)
-        else:
-            invalid = True
+
             
     maskb= filb.get_mask(image)
     BR,fb = getCentroid(maskb)
@@ -49,14 +63,7 @@ def getTransform(image,camera,prevtrans, setmanually = False):
             invalid = True
             
             
-    masky= fily.get_mask(image)
-    TR,fy = getCentroid(masky)
-    if fy:
-        print("YELLOW ERROR")
-        if setmanually:
-            TR = manually_get_centroid(image, preprocessed=True)
-        else:
-            invalid = True
+    
     if invalid:
         trans = prevtrans
     else:
@@ -68,9 +75,15 @@ class Vision:
     """ Handles vision """
     i = 12345
 
-    def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3), verbose = False, setmanually = False):
+    def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3),\
+                 verbose = False, setmanually = False, setpercentiles = False):
         self.camera = camera
-        self.trans, self.invalid = getTransform(image, camera,prevtrans,setmanually = setmanually)
+        self.percentiles = (2,80) #default value
+        if setpercentiles:
+            self.percentiles = adjustlum(image,self.percentiles)
+            
+            
+        self.trans, self.invalid = getTransform(image, camera,prevtrans, self.percentiles,setmanually = setmanually)
         self.setframe(image)    #generate self.frame
         if self.invalid:
             print("initialisation failed")
@@ -87,7 +100,7 @@ class Vision:
             return self.map
 
     def setframe(self, imgraw):
-        img_prep = preprocess(imgraw)
+        img_prep = preprocess(imgraw,self.percentiles)
         img_real = cv2.warpPerspective(img_prep, self.trans, (500,500),borderMode=cv2.BORDER_REFLECT_101)
         self.frame = img_real
         
@@ -124,25 +137,48 @@ class Vision:
         return finish, not invalid
 
 
-""" allows for saving of color bands in an external file"""
-class colorpreset:
-    def __init__(self, red, yellow, blue, green, robot, black, finish):
-        self.bands = {"red" : red,
-        "yellow" : yellow,
-        "blue" : blue,
-        "green" : green,
-        "robot" : robot,
-        "black" : black,
-        "finish" : finish}
+def adjustlum(img,percentiles):
+    cv2.namedWindow("preprocess")
+    cv2.namedWindow("corner masks")
+    cv2.createTrackbar("max", "preprocess" , 0, 100, on_trackbar_max)
+    cv2.createTrackbar("min", "preprocess" , 0, 100, on_trackbar_min)
+    while(True):
 
-    def save(self, name = "colors.p"):
-        pickle.dump(self.bands ,  open( name, "wb" ))
+        
+        imgprep = preprocess(img,percentiles= (pmin,pmax))
+        
+        cv2.imshow("preprocess",cv2.cvtColor(imgprep,cv2.COLOR_HSV2BGR))
+        
+        maskg = colorfilter("GREEN",camera = "ANDROID FLASK")
+        masky = colorfilter("YELLOW",camera = "ANDROID FLASK")
+        maskr = colorfilter("RED",camera = "ANDROID FLASK")
+        maskb = colorfilter("BLUE",camera = "ANDROID FLASK")
+        
+        masktot = maskg.get_mask(imgprep)
+        masktot = cv2.bitwise_or(masktot,masky.get_mask(imgprep))
+        masktot = cv2.bitwise_or(masktot,maskr.get_mask(imgprep))
+        masktot = cv2.bitwise_or(masktot,maskb.get_mask(imgprep))
+        
+        cv2.imshow("corner masks",masktot)
+        key = cv2.waitKey(1)
+        if key & 0XFF == ord('v'):
+            break
+    return (pmin,pmax)
+def on_trackbar_max(val):
+    global pmax
+    pmax = val
+def on_trackbar_min(val):
+    global pmin
+    pmin = val
     
+
+
 class colorfilter:
     def __init__(self, color, camera = "XT3"):
         self.morph = DEFAULT
         self.camera = camera
         self.color = color
+        self.inv = False
         if camera == "XT3":
             if color == "RED":
                 self.band = np.array([[0,11],[142,255],[30,255]])
@@ -160,9 +196,10 @@ class colorfilter:
                  self.morph = BIG
         if camera == "ANDROID FLASK":
             if color == "RED":
-                self.band = np.array([[0,11],[108,255],[131,255]])
+                self.band = np.array([[11,172],[108,255],[70,255]])
+                self.inv = True
             if color == "YELLOW":
-                self.band = np.array([[15,30],[169,255],[110,255]])
+                self.band = np.array([[15,30],[120,255],[70,255]])
             if color == "BLUE":
                 self.band = np.array([[110,130],[95,255],[50,191]])
             if color == "GREEN":
@@ -174,20 +211,25 @@ class colorfilter:
                  self.band = np.array([[0,179],[0,255],[0,50]])
                  self.morph = BIG
             if color == "FINISH":
-                self.band = np.array([[80,105],[100,255],[40,255]])
+                self.band = np.array([[80,105],[100,255],[70,255]])
                 self.morph = NONE
 
     def get_mask(self,image):
-        mask = np.multiply(cv2.inRange(image,self.band[:,0],self.band[:,1]).get().astype(np.uint8),(1/255))
+       
         # (wx,wy) = mask.shape
 
         # print(str(wx) + " " + str(wy))
         #c'est sale, mais comme ça ça passe le wrapping
-        if self.color == "RED":
-            img = image.get().astype(np.uint8)
-            if self.camera == "ANDROID FLASK":
-                mask += cv2.inRange(img,np.array([172,108,131]),np.array([179,255,255]))
-                cv2.threshold(mask,0.5,1,0,dst = mask)
+        if self.inv:
+            band1 = np.copy(self.band)
+            band2 = np.copy(self.band)
+            band1[0,:] = np.array([band1[0,1],179])
+            band2[0,:] = np.array([0,band2[0,0]])
+            mask1 = np.multiply(cv2.inRange(image,band1[:,0],band1[:,1]).get().astype(np.uint8),(1/255))
+            mask2 = np.multiply(cv2.inRange(image,band2[:,0],band2[:,1]).get().astype(np.uint8),(1/255))
+            mask = cv2.bitwise_or(mask1,mask2)
+        else:
+             mask = np.multiply(cv2.inRange(image,self.band[:,0],self.band[:,1]).get().astype(np.uint8),(1/255))
 
         # if self.color == "BLACK":
         #     img = image.get().astype(np.uint8)
@@ -200,9 +242,9 @@ class colorfilter:
         if self.morph == BIG:
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((6,6)).astype("uint8"))
         elif self.morph == DEFAULT:
-            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((7,7)).astype("uint8"))
-        elif self.morph == NONE:
-            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((15,15)).astype("uint8"))
+        # elif self.morph == NONE:
+        #     mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, np.ones((4,4)).astype("uint8"))
         return cv2.UMat(mask)
         
     
@@ -280,15 +322,17 @@ def watershed(event, y_ori, x_ori, flags, img):
         mask_watershed =cv2.bitwise_or(visited,mask_watershed)
         
         
-def preprocess(img):
+def preprocess(img, percentiles= (10,80)):
     imgsmall = cv2.resize(img,(624,416))
     #imgsmooth = cv2.UMat(imgsmall)
-    #imgsmooth = cv2.GaussianBlur(imgsmall,(5,5),0)
-    p2, p90 = np.percentile(imgsmall, (2, 90))
+    #
+    pmin, pmax = np.percentile(imgsmall, percentiles)
     # Contrast stretching, we keep the image intensity between 2% and 90%
-    imgsmooth = exposure.rescale_intensity(imgsmall, in_range=(p2, p90))
-
-    imgHSV = cv2.cvtColor(imgsmooth,cv2.COLOR_BGR2HSV)#.get().astype(np.uint8)
+    imgbright = exposure.rescale_intensity(imgsmall, in_range=(pmin, pmax))
+    #imgsmooth = cv2.GaussianBlur(imgbright[:,:,1:],(11,11),0)
+    #imgrecomp = imgbright
+    #imgrecomp[:,:,1:]= imgsmooth
+    imgHSV = cv2.cvtColor(imgbright,cv2.COLOR_BGR2HSV)#.get().astype(np.uint8)
     #imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
     #imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
     return cv2.UMat(imgHSV)
@@ -316,15 +360,12 @@ def createMap(img,R_ROBOT = 50,camera= "XT3"):
 
     maskpoly = filter_poly.get_mask(img)
     # cv2.imshow("mask poly", maskpoly)
-    # yd,xd = np.ogrid[-R_ROBOT: R_ROBOT+1, -R_ROBOT: R_ROBOT+1]
-    # disk = np.ones((5,5))#(xd**2+yd**2 <= (R_ROBOT//2)**2).astype('uint8')
     margin = cv2.dilate(maskpoly,cv2.getStructuringElement(cv2.MORPH_CROSS, (3,3))\
                         ,iterations = 20,borderType =cv2.BORDER_CONSTANT,borderValue = 0)
     margin = cv2.dilate(margin,cv2.getStructuringElement(cv2.MORPH_RECT, (border_size,border_size))
                         ,iterations = 1,borderType = cv2.BORDER_CONSTANT,borderValue = 0)
 
     polyprojbin = margin.get().astype(np.uint8)
-    cv2.imshow("mask poly dil", polyprojbin*255)
     contours, ret = cv2.findContours(polyprojbin, cv2.RETR_TREE, cv2.CHAIN_APPROX_NONE)
     polygons = []
     for c in contours:
@@ -399,7 +440,8 @@ def getRobotPos(imageBin, verbose = 0,display = 1):
         pos = np.append(centroid,phi)
         pos[0:2] = pos[0:2]/5
     else:
-        print("invalide coord: no or not enough pixel")
+        if verbose:
+            print("invalide coord: no or not enough pixel")
         valid = False
         pos = False
         
