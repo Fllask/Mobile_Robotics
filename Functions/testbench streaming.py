@@ -13,13 +13,13 @@ import time
 DISPLAY = True
 
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(2)
 
 #frame = cv2.imread('../sample_pictures/new color.jpg')
 initfailed = True
 while(initfailed):
     ret,frame = cap.read()
-    vis = v.Vision(frame, "ANDROID FLASK", setmanually = True,setpercentiles = True)
+    vis = v.Vision(frame, "ANDROID FLASK", setmanually = True,setextval = True)
     initfailed = vis.invalid
     
     if DISPLAY:

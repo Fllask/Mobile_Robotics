@@ -11,11 +11,11 @@ BIG = 1
 NONE = 2
 
 mask_watershed = 0
-pmin = 2
-pmax = 80
-def getTransform(image,camera,prevtrans,percentiles, setmanually = False):
+valmin = 20
+valmax = 100
+def getTransformimage(image,camera,prevtrans,valext, setmanually = False):
     #return a geometric transform (usable with cv2.warpPerspective)
-    image = preprocess(image,percentiles)
+    image = preprocess(image,valext)
     invalid = False
     filr = colorfilter("RED",camera)
     filg = colorfilter("GREEN",camera)
@@ -76,14 +76,14 @@ class Vision:
     i = 12345
 
     def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3),\
-                 verbose = False, setmanually = False, setpercentiles = False):
+                 verbose = False, setmanually = False, setextval = False):
         self.camera = camera
-        self.percentiles = (pmin,pmax) #default value
-        if setpercentiles:
-            self.percentiles = adjustlum(image,self.percentiles)
+        self.valext = (valmin,valmax) #default value
+        if setextval:
+            self.valext = adjustlum(image,self.valext)
             
             
-        self.trans, self.invalid = getTransform(image, camera,prevtrans, self.percentiles,setmanually = setmanually)
+        self.trans, self.invalid = getTransformimage(image, camera,prevtrans, self.valext,setmanually = setmanually)
         self.setframe(image)    #generate self.frame
         if self.invalid:
             print("initialisation failed")
@@ -100,7 +100,7 @@ class Vision:
             return self.map
 
     def setframe(self, imgraw):
-        img_prep = preprocess(imgraw,self.percentiles)
+        img_prep = preprocess(imgraw,self.valext)
         img_real = cv2.warpPerspective(img_prep, self.trans, (500,500),borderMode=cv2.BORDER_REFLECT_101)
         self.frame = img_real
         
@@ -137,16 +137,16 @@ class Vision:
         return finish, not invalid
 
 
-def adjustlum(img,percentiles):
+def adjustlum(img,valext):
     cv2.namedWindow("preprocess")
     cv2.namedWindow("corner masks")
-    cv2.createTrackbar("max", "preprocess" , 0, 100, on_trackbar_max)
-    cv2.createTrackbar("min", "preprocess" , 0, 100, on_trackbar_min)
+    cv2.createTrackbar("max", "preprocess" , valext[1], 255, on_trackbar_max)
+    cv2.createTrackbar("min", "preprocess" , valext[0], 255, on_trackbar_min)
     print("Select the equalization, then press v to validate")
     while(True):
 
         
-        imgprep = preprocess(img,percentiles= (pmin,pmax))
+        imgprep = preprocess(img,extval= (valmin,valmax))
         
         cv2.imshow("preprocess",cv2.cvtColor(imgprep,cv2.COLOR_HSV2BGR))
         
@@ -154,23 +154,29 @@ def adjustlum(img,percentiles):
         masky = colorfilter("YELLOW",camera = "ANDROID FLASK")
         maskr = colorfilter("RED",camera = "ANDROID FLASK")
         maskb = colorfilter("BLUE",camera = "ANDROID FLASK")
-        
+        maskrobot = colorfilter("ROBOT",camera = "ANDROID FLASK")
+        maskfinish = colorfilter("FINISH",camera = "ANDROID FLASK")
         masktot = maskg.get_mask(imgprep)
         masktot = cv2.bitwise_or(masktot,masky.get_mask(imgprep))
         masktot = cv2.bitwise_or(masktot,maskr.get_mask(imgprep))
         masktot = cv2.bitwise_or(masktot,maskb.get_mask(imgprep))
+        masktot = cv2.bitwise_or(masktot,maskrobot.get_mask(imgprep))
+        masktot = cv2.bitwise_or(masktot,maskfinish.get_mask(imgprep))
+
         
         cv2.imshow("corner masks",masktot)
         key = cv2.waitKey(1)
         if key & 0XFF == ord('v'):
             break
-    return (pmin,pmax)
+    cv2.destroyWindow("corner masks")
+    cv2.destroyWindow("preprocess")
+    return (valmin,valmax)
 def on_trackbar_max(val):
-    global pmax
-    pmax = val
+    global valmax
+    valmax = val
 def on_trackbar_min(val):
-    global pmin
-    pmin = val
+    global valmin
+    valmin = val
     
 
 
@@ -186,9 +192,9 @@ class colorfilter:
             if color == "YELLOW":
                 self.band = np.array([[20,30],[90,255],[110,255]])
             if color == "BLUE":
-                self.band = np.array([[110,130],[161,255],[41,220]])
+                self.band = np.array([[110,130],[161,255],[41,255]])
             if color == "GREEN":
-                 self.band = np.array([[34,78],[135,255],[76,217]])
+                 self.band = np.array([[34,78],[135,255],[76,255]])
             if color == "ROBOT":
                 self.band = np.array([[85,109],[107,255],[71,255]])
                 #self.morph = NONE
@@ -202,7 +208,7 @@ class colorfilter:
             if color == "YELLOW":
                 self.band = np.array([[15,30],[120,255],[70,255]])
             if color == "BLUE":
-                self.band = np.array([[110,130],[95,255],[50,191]])
+                self.band = np.array([[110,130],[95,255],[50,255]])
             if color == "GREEN":
                  self.band = np.array([[41,78],[100,255],[50,255]])
             if color == "ROBOT":
@@ -324,13 +330,12 @@ def watershed(event, y_ori, x_ori, flags, img):
         mask_watershed =cv2.bitwise_or(visited,mask_watershed)
         
         
-def preprocess(img, percentiles= (10,80)):
+def preprocess(img, extval= (10,80)):
     imgsmall = cv2.resize(img,(624,416))
     #imgsmooth = cv2.UMat(imgsmall)
     #
-    pmin, pmax = np.percentile(imgsmall, percentiles)
     # Contrast stretching, we keep the image intensity between 2% and 90%
-    imgbright = exposure.rescale_intensity(imgsmall, in_range=(pmin, pmax))
+    imgbright = exposure.rescale_intensity(imgsmall, in_range=extval)
     #imgsmooth = cv2.GaussianBlur(imgbright[:,:,1:],(11,11),0)
     #imgrecomp = imgbright
     #imgrecomp[:,:,1:]= imgsmooth
