@@ -40,7 +40,7 @@ while (True):
     if DISPLAY:
         cv2.imshow('frame',img_cul)
         img_real = cv2.warpPerspective(img_cul, vis.trans, (500,500))
-        obstacles = visy.getMap(downscale = False)
+        obstacles = vis.getMap(downscale = False)
         if not isinstance(obstacles,bool):
             cv2.drawContours(img_real, obstacles, -1, (0,255,0), 3)
             for p in obstacles:

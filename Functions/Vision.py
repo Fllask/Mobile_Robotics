@@ -11,8 +11,8 @@ BIG = 1
 NONE = 2
 
 mask_watershed = 0
-pmin = 0
-pmax = 100
+pmin = 2
+pmax = 80
 def getTransform(image,camera,prevtrans,percentiles, setmanually = False):
     #return a geometric transform (usable with cv2.warpPerspective)
     image = preprocess(image,percentiles)
@@ -78,7 +78,7 @@ class Vision:
     def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3),\
                  verbose = False, setmanually = False, setpercentiles = False):
         self.camera = camera
-        self.percentiles = (2,80) #default value
+        self.percentiles = (pmin,pmax) #default value
         if setpercentiles:
             self.percentiles = adjustlum(image,self.percentiles)
             
@@ -142,6 +142,7 @@ def adjustlum(img,percentiles):
     cv2.namedWindow("corner masks")
     cv2.createTrackbar("max", "preprocess" , 0, 100, on_trackbar_max)
     cv2.createTrackbar("min", "preprocess" , 0, 100, on_trackbar_min)
+    print("Select the equalization, then press v to validate")
     while(True):
 
         
@@ -292,8 +293,8 @@ def watershed(event, y_ori, x_ori, flags, img):
     if event == cv2.EVENT_LBUTTONDOWN:
         global mask_watershed
         difhmax = 10
-        difsmax = 70
-        difvmax = 70
+        difsmax = 30
+        difvmax = 30
         flagWrap = False
         listnew = [(x_ori,y_ori)]
         hue_ori = img[x_ori,y_ori,0]
