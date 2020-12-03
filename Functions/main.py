@@ -111,7 +111,7 @@ class ComputeVision():
        
         #getting the camera input
 
-        cap = cv2.VideoCapture(0)
+        cap = cv2.VideoCapture(1)
 
         #get the first frame to test
         
@@ -208,9 +208,9 @@ class ComputeVision():
             else:
                 self.g.start = self.rob
                 self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
-                print(self.obstacles)
+                #print(self.obstacles)
                 d['path'] = self.path
-                print(self.path)
+                #print(self.path)
                 #self.pathComputed = True
                 d['pathComputed'] = True
             
@@ -313,7 +313,7 @@ class RobotControl():
                     d['pathComputed'] = False
                     d['path'] = False
             elif thym.state == 'INIT' :
-                print('dpath',d['path'])
+                #print('dpath',d['path'])
                 thym.INIT(d['path'],d['visPos'])
 
 
@@ -321,7 +321,7 @@ class RobotControl():
             tps2 = time.monotonic()
             Ts=tps2-tps1
             d['fltPos'] = thym.Pos
-            print('pos_cam',pos_cam)
+            #print('pos_cam',pos_cam)
 
             if thym.p is not None :
                 if thym.p<3 and thym.node==len(thym.global_path)-2:
@@ -352,7 +352,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "/dev/cu.usbmodem144401"
+    robotPort = "COM7"
 
     """ Parsing stdin """
     verbose = False
