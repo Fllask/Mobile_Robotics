@@ -190,10 +190,8 @@ class ComputeVision():
             print("Initial Path Planning Time : "+str(time.process_time()-t0))
 
 
-        # print("STARTING VISION LOOP")
-        # for i in range(5):
-        #     print("")
-        while True: 
+        runFlag = True
+        while runFlag: 
             d['started'] = True
             t0 = time.process_time() #we time each loop to get an idea of performance
             # loading new image
@@ -212,8 +210,11 @@ class ComputeVision():
             ## displaying whatever was computed
             disp = self.display(d)
             cv2.imshow('frame',disp)
+            key = cv2.waitKey(1) 
+
             if cv2.waitKey(1) & 0xFF == ord('q'):
-                break      
+                d['running'] = False
+
 
             if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or d['pathComputed']:#self.pathComputed
                 if self.verbose:
@@ -235,6 +236,7 @@ class ComputeVision():
             #if self.verbose:
                 #print("Full Vision Loop : "+str(time.process_time()-t0))
             d['vtime']=str(time.process_time()-t0)
+            runFlag = d['running']
 
 
 """ 
@@ -308,8 +310,7 @@ class RobotControl():
         """ wait until vision is go"""
         while not d['started']:
             time.sleep(0.1)
-        print("STARTING CONTROL : \n")
-
+        print("STARTING CONTROL, PRESS Q TO SHUTDOWN : \n")
         with output(output_type='dict') as output_lines:
             while go:
 
@@ -345,7 +346,7 @@ class RobotControl():
                             d['pathComputed'] = False
                             d['path'] = False
                     elif thym.state == 'INIT' :
-                        print('dpath',d['path'])
+                        # print('dpath',d['path'])
                         thym.INIT(d['path'],d['visPos'])
 
 
@@ -376,10 +377,15 @@ class RobotControl():
                         output_lines['KALMAN POS'] = str(d['fltPos'])
                         output_lines['GOAL'] = str(d['goal'])
                         output_lines['PATH'] = str(d['path'])
+                        output_lines['RUNNING'] = str(d['running'])
                         if not self.norobot:
                             output_lines['STATE'] = str(thym.state)
                         else:
                             output_lines['STATE'] = " NO ROBOT"
+
+                if d['running'] == False:
+                    go = 0
+        print("CONTROL STOPPED\n")
 
             
 
@@ -424,6 +430,7 @@ if __name__ == '__main__':
     d['pathComputed'] = False
     d['vtime'] = "0"
     d['started'] = False
+    d['running'] = True
 
     """ initializing thread objects"""
     cmptVis = ComputeVision(False, fileinput)
@@ -434,3 +441,5 @@ if __name__ == '__main__':
     ctrl.run(d)
     cmptVis.join()
     ctrl.join()
+
+    print("Sucessful graceful exit")
