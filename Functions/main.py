@@ -399,6 +399,11 @@ class RobotControl():
                             output_lines['STATE'] = " NO ROBOT"
                     histPoint = self.copyProxyDict(d)
                     histPoint['time'] = time.process_time()
+                    if not self.norobot:
+                        histPoint['state'] = thym.state
+                    else:
+                        histPoint['state'] = "NO ROBOT"
+
                     self.history.append(histPoint)
 
                 if d['running'] == False:
