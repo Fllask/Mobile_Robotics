@@ -20,6 +20,7 @@ if cv2.ocl.haveOpenCL():
 import numpy as np
 import math
 import copy
+import pickle
 
 from reprint import output ## allows for nice multiline dynamic printing
 
@@ -191,20 +192,28 @@ class ComputeVision():
 
 
         runFlag = True
+        d['started'] = True
         while runFlag: 
-            d['started'] = True
-            t0 = time.process_time() #we time each loop to get an idea of performance
+
+            #########################################################################
+            #                                                                       #
+            #                        Vision Loop of the robot                       #
+            #                                                                       #
+            #########################################################################
+            
+             #we time each loop to get an idea of performance
+            t0 = time.process_time()
+
             # loading new image
             ret, self.img = self.loadImage(cap)
             self.vis.setframe(self.img) 
             
-            ## getting robot coordinates
+            ## getting robot coordinates and updating position for robot control loop
             self.rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
             if not isinstance(self.rbt_pos,bool):
                 self.rob = tuple(self.rbt_pos[0:2])
             else:
                 self.rob = False
-                
             d['visPos'] = self.rbt_pos
 
             ## displaying whatever was computed
@@ -212,29 +221,17 @@ class ComputeVision():
             cv2.imshow('frame',disp)
             key = cv2.waitKey(1) 
 
+            # detect keypress for graceful shutdown
             if cv2.waitKey(1) & 0xFF == ord('q'):
                 d['running'] = False
 
-
-            if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or d['pathComputed']:#self.pathComputed
-                if self.verbose:
-                    pass
-                    #   print("No Path Computed")
-                #     print("stopB->"+str(isinstance(self.stop,bool)))
-                #     print("rbt_posB->"+str(isinstance(self.rbt_pos,bool)))
-                #     print("obstaclesB->"+str(isinstance(self.obstacles,bool)))
-                #     print("pathComputed->"+str(self.pathComputed))
-            else:
+            # wait until we have start, finish and obstacles to compute path
+            if not (isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or d['pathComputed']):
                 self.g.start = self.rob
                 self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
-                # print(self.obstacles)
                 d['path'] = self.path
-                # print(self.path)
-                #self.pathComputed = True
                 d['pathComputed'] = True
             
-            #if self.verbose:
-                #print("Full Vision Loop : "+str(time.process_time()-t0))
             d['vtime']=str(time.process_time()-t0)
             runFlag = d['running']
 
@@ -246,10 +243,12 @@ class ComputeVision():
 """
 class RobotControl():
     """ Constructor of the RobotControl class """
-    def __init__(self,verbose,address,norobot):
+    def __init__(self,verbose,address,norobot,save = False):
         self.verbose = True
         self.address = address
         self.norobot = norobot
+        self.history = []
+        self.save = save
 
     """ Starts the control process """
     def run(self,d):
@@ -258,6 +257,19 @@ class RobotControl():
 
     def join(self):
         self.mainLoopProcess.join()
+    
+    def copyProxyDict(self,d):
+        retDict = {}
+        for key in d.keys():
+            retDict[key] = d[key]
+
+        return retDict
+
+    def saveHistory(self):
+        if self.verbose:
+            print("-> Saving run history as : " + self.save)
+            print(type(self.history[0]))
+        pickle.dump(self.history, open(self.save,"wb"))
 
     """ Main control loop """
     def mainLoop(self,d):
@@ -367,8 +379,11 @@ class RobotControl():
 
                 rt = time.process_time() - t0
                 t0 = time.process_time()
-                if int(round(time.process_time(),0)) > t:
-                    t = int(round(time.process_time(),0))
+
+                precision = 1 # we update display and history 10x a second
+
+                if round(time.process_time(),precision) > t: 
+                    t = round(time.process_time(),precision)
                     """ Nice display for the robot control """
                     if self.verbose:
                         output_lines['CTRL PERIOD'] = str(rt)
@@ -382,15 +397,21 @@ class RobotControl():
                             output_lines['STATE'] = str(thym.state)
                         else:
                             output_lines['STATE'] = " NO ROBOT"
+                    histPoint = self.copyProxyDict(d)
+                    histPoint['time'] = time.process_time()
+                    self.history.append(histPoint)
 
                 if d['running'] == False:
                     go = 0
         print("CONTROL STOPPED\n")
 
+        if(self.save,str):
+            self.saveHistory()
+
             
 
 """
-    main function, root of all the program
+    main function, root the program
     @autor: Titou
 """
 if __name__ == '__main__':
@@ -398,11 +419,13 @@ if __name__ == '__main__':
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
     robotPort = "COM7"
+    saveFile = "history.pkl"
 
     """ Parsing stdin """
     verbose = False
     fileinput = False
     norobot = False
+    save = False
     for i in range (1,len(sys.argv)):
         """ v flag is verbose """
         if sys.argv[i] == "v":
@@ -416,6 +439,10 @@ if __name__ == '__main__':
         if sys.argv[i] == "r":
             print("RUNNING ROBOTLESS DEBUG MODE")
             norobot = True
+        """ f flag is for saving control history """
+        if sys.argv[i] == "r":
+            print("RUNNING WITH HISTORY")
+            save = saveFile
 
 
     
@@ -434,7 +461,7 @@ if __name__ == '__main__':
 
     """ initializing thread objects"""
     cmptVis = ComputeVision(False, fileinput)
-    ctrl = RobotControl(verbose,robotPort,norobot)
+    ctrl = RobotControl(verbose,robotPort,norobot,save)
 
     """ starting threads """
     cmptVis.run(d)
