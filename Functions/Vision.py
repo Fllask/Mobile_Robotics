@@ -162,6 +162,7 @@ def adjustlum(img,percentiles):
         cv2.imshow("corner masks",masktot)
         key = cv2.waitKey(1)
         if key & 0XFF == ord('v'):
+            cv2.destroyAllWindows()
             break
     return (pmin,pmax)
 def on_trackbar_max(val):

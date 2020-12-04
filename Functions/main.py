@@ -21,6 +21,8 @@ import numpy as np
 import math
 import copy
 
+from reprint import output ## allows for nice multiline dynamic printing
+
 from Thymio import Thymio
 
 #these are our modules
@@ -38,8 +40,9 @@ from Filtering import Filtering
 """
 class ComputeVision():
     """ Constructor of the ComputeVision class"""
-    def __init__(self,verbose):
+    def __init__(self,verbose, fileinput):
         self.verbose = verbose
+        self.fileinput = fileinput
 
 
     """ Starts the vision process """
@@ -100,7 +103,12 @@ class ComputeVision():
         return tr_img
         
     
-        
+    def loadImage(self, cap):
+        if isinstance(cap, str):
+            frame = cv2.imread(cap)
+            return True, frame
+        else:
+            return cap.read()
         
     """ Main vision loop """
     def mainLoop(self,d):
@@ -110,12 +118,14 @@ class ComputeVision():
 
        
         #getting the camera input
-
-        cap = cv2.VideoCapture(0)
+        if self.fileinput:
+            cap = "../sample_pictures/sample.jpg"
+        else:
+            cap = cv2.VideoCapture(0)
+        
 
         #get the first frame to test
-        
-        ret, self.img = cap.read()
+        ret, self.img = self.loadImage(cap)
         self.img =  cv2.resize(self.img,(624,416))
 
         if not ret:
@@ -131,8 +141,8 @@ class ComputeVision():
             print("initializing vision")
 
         while(initfailed):
-            ret,frame = cap.read()
-            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True)
+            ret,frame = self.loadImage(cap)
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True, setpercentiles=True)
             initfailed = self.vis.invalid
             flag = False
         
@@ -144,7 +154,10 @@ class ComputeVision():
         
         #querying the aim coordinates
         self.stop, ret = self.vis.returnDynamicAim()
-        self.stop = tuple(self.stop)
+        if not isinstance(self.stop,bool):
+            self.stop = tuple(self.stop)
+        else:
+            self.stop = False
         self.path = False
 
 
@@ -176,10 +189,15 @@ class ComputeVision():
         if self.verbose:
             print("Initial Path Planning Time : "+str(time.process_time()-t0))
 
+
+        # print("STARTING VISION LOOP")
+        # for i in range(5):
+        #     print("")
         while True: 
+            d['started'] = True
             t0 = time.process_time() #we time each loop to get an idea of performance
             # loading new image
-            ret, self.img = cap.read()
+            ret, self.img = self.loadImage(cap)
             self.vis.setframe(self.img) 
             
             ## getting robot coordinates
@@ -208,9 +226,9 @@ class ComputeVision():
             else:
                 self.g.start = self.rob
                 self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
-                print(self.obstacles)
+                # print(self.obstacles)
                 d['path'] = self.path
-                print(self.path)
+                # print(self.path)
                 #self.pathComputed = True
                 d['pathComputed'] = True
             
@@ -226,11 +244,10 @@ class ComputeVision():
 """
 class RobotControl():
     """ Constructor of the RobotControl class """
-    def __init__(self,verbose,address):
+    def __init__(self,verbose,address,norobot):
         self.verbose = True
         self.address = address
-
-        
+        self.norobot = norobot
 
     """ Starts the control process """
     def run(self,d):
@@ -248,20 +265,21 @@ class RobotControl():
             print("Starting control main loop")
         t = 0        
 
-        if self.verbose:
-            print("Connecting to Thymio at address "+self.address+" ... ")
-        try:
-            self.th = Thymio.serial(port=self.address, refreshing_rate=0.1)
-            time.sleep(3)
-            self.th.set_var_array("leds.top", [0, 0, 0])
+        if not self.norobot:
             if self.verbose:
-                print("connection successful !")
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
-            return
+                print("Connecting to Thymio at address "+self.address+" ... ")
+            try:
+                self.th = Thymio.serial(port=self.address, refreshing_rate=0.1)
+                time.sleep(3)
+                self.th.set_var_array("leds.top", [0, 0, 0])
+                if self.verbose:
+                    print("connection successful !")
+            except:
+                print("Unexpected error:", sys.exc_info()[0])
+                return
 
-        if self.verbose:
-            print("Starting main loop")
+            if self.verbose:
+                print("Starting main loop")
 
         # Initialise robot class
 
@@ -286,61 +304,76 @@ class RobotControl():
         init = False
         go=1
 
-        while go:
+        """ wait until vision is go"""
+        while not d['started']:
+            time.sleep(0.1)
+        print("STARTING CONTROL : \n")
 
-            tps1 = time.monotonic()
-            
-            #########################################################################
-            # get the position of the robot given by the camera when it is possible #
-            #          if not possible set the updateWithCam bolean to False        # 
-            #########################################################################
+        with output(output_type='dict') as output_lines:
+            while go:
 
-            pos_cam = np.array(d['visPos'],ndmin=2).T
+                tps1 = time.monotonic()
+                
+                #########################################################################
+                # get the position of the robot given by the camera when it is possible #
+                #          if not possible set the updateWithCam bolean to False        # 
+                #########################################################################
 
-
-            #########################################################################
-            #                                                                       #
-            #                           FSM of the Robot                            #
-            #                                                                       #
-            #########################################################################
-            if thym.state =='ASTOLFI' : 
-                thym.ASTOLFI(self.th,Ts, filter,pos_cam)
-            elif thym.state == 'TURN' :
-                thym.TURN(self.th,Ts)
-            elif thym.state == 'LOCAL' :
-                thym.LOCAL(self.th,Ts, filter, pos_cam)
-                if thym.state == 'INIT':
-                    d['pathComputed'] = False
-                    d['path'] = False
-            elif thym.state == 'INIT' :
-                print('dpath',d['path'])
-                thym.INIT(d['path'],d['visPos'])
+                pos_cam = np.array(d['visPos'],ndmin=2).T
 
 
+                #########################################################################
+                #                                                                       #
+                #                           FSM of the Robot                            #
+                #                                                                       #
+                #########################################################################
 
-            tps2 = time.monotonic()
-            Ts=tps2-tps1
-            d['fltPos'] = thym.Pos
-            print('pos_cam',pos_cam)
+                if not self.norobot:
+                    if thym.state =='ASTOLFI' : 
+                        thym.ASTOLFI(self.th,Ts, filter,pos_cam)
+                    elif thym.state == 'TURN' :
+                        thym.TURN(self.th,Ts)
+                    elif thym.state == 'LOCAL' :
+                        thym.LOCAL(self.th,Ts, filter, pos_cam)
+                        if thym.state == 'INIT':
+                            d['pathComputed'] = False
+                            d['path'] = False
+                    elif thym.state == 'INIT' :
+                        print('dpath',d['path'])
+                        thym.INIT(d['path'],d['visPos'])
 
-            if thym.p is not None :
-                if thym.p<3 and thym.node==len(thym.global_path)-2:
-                    self.th.set_var("motor.left.target", 0)
-                    self.th.set_var("motor.right.target", 0)
-                    print('FININSH!!!!')
-                    tfinal=time.monotonic()
-                    go = 0
 
 
-            rt = time.process_time() - t0
-            t0 = time.process_time()
-            if int(round(time.process_time(),0)) > t:
-                t = int(round(time.process_time(),0))
-                nd = dict(d)
-                if self.verbose:
-                    print("control period : " + str(rt))
-                    print("vision period : "+d["vtime"])
-                    print("position of robot : "+str(nd['visPos']))
+                tps2 = time.monotonic()
+                Ts=tps2-tps1
+                d['fltPos'] = thym.Pos
+
+                if thym.p is not None :
+                    if thym.p<3 and thym.node==len(thym.global_path)-2:
+                        if not self.norobot:
+                            self.th.set_var("motor.left.target", 0)
+                            self.th.set_var("motor.right.target", 0)
+                        print('FININSH!!!!')
+                        tfinal=time.monotonic()
+                        go = 0
+
+
+                rt = time.process_time() - t0
+                t0 = time.process_time()
+                if int(round(time.process_time(),0)) > t:
+                    t = int(round(time.process_time(),0))
+                    """ Nice display for the robot control """
+                    if self.verbose:
+                        output_lines['CTRL PERIOD'] = str(rt)
+                        output_lines['VISION PERIOD'] = str(d["vtime"])
+                        output_lines['VISION POS'] = str(d['visPos'])
+                        output_lines['KALMAN POS'] = str(d['fltPos'])
+                        output_lines['GOAL'] = str(d['goal'])
+                        output_lines['PATH'] = str(d['pathComputed'])
+                        if not self.norobot:
+                            output_lines['STATE'] = str(thym.state)
+                        else:
+                            output_lines['STATE'] = " NO ROBOT"
 
             
 
@@ -356,19 +389,26 @@ if __name__ == '__main__':
 
     """ Parsing stdin """
     verbose = False
+    fileinput = False
+    norobot = False
     for i in range (1,len(sys.argv)):
+        """ v flag is verbose """
         if sys.argv[i] == "v":
-            print("Running Verbose Mode")
+            print("RUNNING VERBOSE MODE")
             verbose = True
+        """ w flag is webcamless vision debug """
+        if sys.argv[i] == "w":
+            print("RUNNING WEBCAMLESS DEBUG MODE")
+            fileinput = True
+        """ r flag is robotless debug """
+        if sys.argv[i] == "r":
+            print("RUNNING ROBOTLESS DEBUG MODE")
+            norobot = True
 
-    try:
-        ctrl = RobotControl(verbose,robotPort)
-    except:
-        sys.exit(1)
+
     
-    
+    """ initializing memory manager"""
     manager = Manager()
-
     d = manager.dict()
     d['visPos'] = False
     d['fltPos'] = False
@@ -377,10 +417,13 @@ if __name__ == '__main__':
     d['goal'] = False
     d['pathComputed'] = False
     d['vtime'] = "0"
+    d['started'] = False
 
+    """ initializing thread objects"""
+    cmptVis = ComputeVision(False, fileinput)
+    ctrl = RobotControl(verbose,robotPort,norobot)
 
-    cmptVis = ComputeVision(verbose)
-
+    """ starting threads """
     cmptVis.run(d)
     ctrl.run(d)
     cmptVis.join()
