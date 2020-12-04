@@ -142,7 +142,7 @@ class ComputeVision():
 
         while(initfailed):
             ret,frame = self.loadImage(cap)
-            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True, setpercentiles=True)
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True)
             initfailed = self.vis.invalid
             flag = False
         
@@ -285,9 +285,9 @@ class RobotControl():
 
         Init_pos = False
         Ts = 0.1
-        kp = 3    #0.15   #0.5
-        ka = 35  #0.4    #0.8
-        kb = -8   #-0.07  #-0.2
+        kp = 2 #3    #0.15   #0.5
+        ka = 22 #35  #0.4    #0.8
+        kb = -4 #-8   #-0.07  #-0.2
         vTOm=31.5 #30.30
         wTOm=(200*180)/(80*math.pi) #130.5 #
         thym = Robot(False,False,Ts, kp,ka,kb,vTOm,wTOm)
@@ -296,13 +296,14 @@ class RobotControl():
 
         Rvel = np.array([[100000000., 0.], [0.,10000000.]])
         Hvel = np.array([[0.,0.,0.,1.,0.],[0.,0.,0.,0.,1.]])
-        Rcam = np.array([[1.,0.,0.],[0.,1.,0.],[0.,0.,0.6]])
+        Rcam = np.array([[2.,0.,0.],[0.,2.,0.],[0.,0.,0.3]])
         Hcam = np.array([[1.,0.,0.,0.,0.],[0.,1.,0.,0.,0.],[0.,0.,1.,0.,0.]])
 
         filter = Filtering(Rvel, Rcam, thym, Hvel, Hcam,Ts)
 
         init = False
         go=1
+        cnt = 1
 
         """ wait until vision is go"""
         while not d['started']:
@@ -314,12 +315,17 @@ class RobotControl():
 
                 tps1 = time.monotonic()
                 
+                cnt += 1
+
                 #########################################################################
                 # get the position of the robot given by the camera when it is possible #
                 #          if not possible set the updateWithCam bolean to False        # 
                 #########################################################################
 
-                pos_cam = np.array(d['visPos'],ndmin=2).T
+                if not cnt%10 : 
+                    pos_cam = np.array(d['visPos'],ndmin=2).T
+                else :
+                    pos_cam = False
 
 
                 #########################################################################
@@ -332,7 +338,7 @@ class RobotControl():
                     if thym.state =='ASTOLFI' : 
                         thym.ASTOLFI(self.th,Ts, filter,pos_cam)
                     elif thym.state == 'TURN' :
-                        thym.TURN(self.th,Ts)
+                        thym.TURN(self.th,Ts, filter, pos_cam)
                     elif thym.state == 'LOCAL' :
                         thym.LOCAL(self.th,Ts, filter, pos_cam)
                         if thym.state == 'INIT':
@@ -349,7 +355,7 @@ class RobotControl():
                 d['fltPos'] = thym.Pos
 
                 if thym.p is not None :
-                    if thym.p<3 and thym.node==len(thym.global_path)-2:
+                    if thym.p<5 and thym.node==len(thym.global_path)-2:
                         if not self.norobot:
                             self.th.set_var("motor.left.target", 0)
                             self.th.set_var("motor.right.target", 0)
@@ -369,7 +375,7 @@ class RobotControl():
                         output_lines['VISION POS'] = str(d['visPos'])
                         output_lines['KALMAN POS'] = str(d['fltPos'])
                         output_lines['GOAL'] = str(d['goal'])
-                        output_lines['PATH'] = str(d['pathComputed'])
+                        output_lines['PATH'] = str(d['path'])
                         if not self.norobot:
                             output_lines['STATE'] = str(thym.state)
                         else:
@@ -385,7 +391,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "/dev/cu.usbmodem144401"
+    robotPort = "COM7"
 
     """ Parsing stdin """
     verbose = False
