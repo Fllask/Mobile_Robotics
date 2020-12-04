@@ -268,7 +268,6 @@ class RobotControl():
     def saveHistory(self):
         if self.verbose:
             print("-> Saving run history as : " + self.save)
-            print(type(self.history[0]))
         pickle.dump(self.history, open(self.save,"wb"))
 
     """ Main control loop """
@@ -386,6 +385,7 @@ class RobotControl():
                     t = round(time.process_time(),precision)
                     """ Nice display for the robot control """
                     if self.verbose:
+                        output_lines['HISTORY SAMPLES'] = len(self.history)
                         output_lines['CTRL PERIOD'] = str(rt)
                         output_lines['VISION PERIOD'] = str(d["vtime"])
                         output_lines['VISION POS'] = str(d['visPos'])
