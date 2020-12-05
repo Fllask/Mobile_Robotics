@@ -353,7 +353,7 @@ class Robot:
 
         return self.state
 
-    def LOCAL(self,th,Ts, filter, pos_cam):
+    def LOCAL(self,th,Ts, filter, pos_cam,map):
         ''' we get around the local obstacle  until we we don't detect any obstacle in front of the robot when the robot is oriented 
         in the direction of the goal
         the robot will enter in init mode until we recompute a global path.

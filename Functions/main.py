@@ -389,7 +389,7 @@ class RobotControl():
                     elif thym.state == 'TURN' :
                         thym.TURN(self.th,Ts, filter, pos_cam)
                     elif thym.state == 'LOCAL' :
-                        thym.LOCAL(self.th,Ts, filter, pos_cam)
+                        thym.LOCAL(self.th,Ts, filter, pos_cam,d['map'])
                         if thym.state == 'INIT':
                             d['pathComputed'] = False
                             d['path'] = False
@@ -422,6 +422,8 @@ class RobotControl():
                 if round(time.process_time(),precision) > t: 
                     t = round(time.process_time(),precision)
                     """ Nice display for the robot control """
+                    if os.name == 'nt':
+                        os.system("cls")
                     if self.verbose:
                         output_lines['HISTORY SAMPLES'] = len(self.history)
                         output_lines['CTRL PERIOD'] = str(rt)
