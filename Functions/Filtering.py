@@ -35,10 +35,8 @@ class Filtering:
         if update_cam:
             
             innovation[2]= (m.pi+innovation[2])%(2*m.pi)-m.pi
-            print('inn\n', innovation)
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        #print('K\n',K)
         X_est = X_est + np.dot(K,innovation)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
         return X_est, P_est
@@ -106,9 +104,6 @@ class Filtering:
 
        theta = self.robot.Pos[2]
        vTOm = self.robot.vTOm
-
-       #if 'full' in cov_type :
-
            
        if 'diag' in cov_type :
             self.Q = np.eye(5,5) * cov_type['diag']

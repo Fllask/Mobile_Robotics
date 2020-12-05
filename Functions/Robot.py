@@ -168,7 +168,6 @@ class Robot:
         sensor= np.array(th["prox.horizontal"]) #get values from the sensors
         if sensor[0]>1000 or sensor[1]>1000 or sensor[2]>3000 or sensor[3]>1000 or sensor[4]>1000: # threshold a modifi� 
             self.state='LOCAL'
-            print('state',self.state)
             right=sensor[4]+sensor[3]   #values of the right sensors   
             left=sensor[0]+sensor[1]    #values of the left sensors
             if right>left:              #turn right if it feels the object on the left
@@ -206,8 +205,6 @@ class Robot:
         angle=ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
 
         test=(m.pi+self.Pos[2]-angle)%(2*m.pi)-m.pi
-        test=abs(test)
-        print(test)
         if abs(test)<0.1:
             self.state='INIT'
             self.u[0]=0
@@ -266,7 +263,7 @@ class Robot:
         self.check_localobstacle(th)
         
         if self.state == 'LOCAL' :
-            return
+            return self.state
 
         # converting x,y and theta in rho, beta and alpha (Astolfi controller)
         self.compute_pba()
@@ -281,6 +278,7 @@ class Robot:
             th.set_var('motor.left.target',0)
             th.set_var('motor.right.target',0)
             time.sleep(3)
+            return self.state
 
         else :
             # compute rho, alpha and beta at time t+ts
