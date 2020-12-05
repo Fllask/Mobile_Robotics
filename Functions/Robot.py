@@ -44,6 +44,7 @@ class Robot:
         self.turn=0                        #0 if avoid obstacle by the left or 1 if avoid obstacle by the right
         self.cnt=1                         # counter to repeat the loop for going straight in local avoidance 
         self.idx_sensor=(1,0)              # index of the sensor use for local avoidance to know which sensor are important depending if we are turning left or right
+        self.sensor = None
     
 
 
@@ -167,10 +168,10 @@ class Robot:
         if the values of the sensor are above a treshold the robot goes in local mode'''
 
         self.sensor= np.array(th["prox.horizontal"]) #get values from the sensors
-        if sensor[0]>1000 or sensor[1]>1000 or sensor[2]>3000 or sensor[3]>1000 or sensor[4]>1000: # threshold a modifi� 
+        if self.sensor[0]>1000 or self.sensor[1]>1000 or self.sensor[2]>3000 or self.sensor[3]>1000 or self.sensor[4]>1000: # threshold a modifi� 
             self.state='LOCAL'
-            right=sensor[4]+sensor[3]   #values of the right sensors   
-            left=sensor[0]+sensor[1]    #values of the left sensors
+            right=self.sensor[4]+self.sensor[3]   #values of the right self.sensors   
+            left=self.sensor[0]+self.sensor[1]    #values of the left self.sensors
             if right>left:              #turn right if it feels the object on the left
                 self.turn=0
                 self.idx_sensor=(3,4)
@@ -181,8 +182,8 @@ class Robot:
   
     def checkstate0(self,th):
         ''' check if we are still in localstate 0 (turn left or right) or if we can go to localstate 1 (go straight) '''
-        sensor= np.array(th["prox.horizontal"])
-        if sensor[self.idx_sensor[1]]<1 and sensor[self.idx_sensor[0]]<1:
+        self.sensor= np.array(th["prox.horizontal"])
+        if self.sensor[self.idx_sensor[1]]<1 and self.sensor[self.idx_sensor[0]]<1:
             self.locstate=1
             self.cnt=1
         return self.locstate
@@ -192,8 +193,8 @@ class Robot:
         turn in the direction of the obstacle until we feel it then go back in local state 0 to turn in the other side
         this allow us to stay close to get around the obstacle'''
 
-        sensor= np.array(th["prox.horizontal"])
-        if sensor[self.idx_sensor[1]]>700:
+        self.sensor= np.array(th["prox.horizontal"])
+        if self.sensor[self.idx_sensor[1]]>700:
             self.locstate=0
         return self.locstate
 
@@ -201,8 +202,6 @@ class Robot:
         ''' check if we still need to be in local avoidance or if we can go in global avoidance 
         if the thymio is pointing to the next goal and that we don't feel any local obstacle we go back in global avoidance'''
 
-        #sensor= np.array(th["prox.horizontal"])
-        #if sensor[self.idx_sensor[1]]<1:
         angle=ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
 
         test=(m.pi+self.Pos[2]-angle)%(2*m.pi)-m.pi
@@ -311,7 +310,7 @@ class Robot:
         #                                                                  #
         ####################################################################
 
-        elif pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
+        elif pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 100.:
             self.state = 'INIT'
             th.set_var('motor.left.target',0)
             th.set_var('motor.right.target',0)
@@ -338,7 +337,7 @@ class Robot:
             time.sleep(0.1)
 
             # get our pos with the filter
-            filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
+            #filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
             return self.Pos
         
     def TURN(self,th,Ts,filter, pos_cam, update_cam):

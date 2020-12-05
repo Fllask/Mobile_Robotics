@@ -23,16 +23,30 @@ class  Visualization:
             
         return retList  
 
-    def parseNone(self, rawValues):
+    def parseNone(self, rawValues, index = 0):
         ret = []
         for el in rawValues:
             if el is None:
                 ret.append(0.0)
             elif isinstance(el,np.ndarray):
-                ret.append(el[0])
+                ret.append(el[index])
             else:
                 ret.append(el)
         return ret
+
+
+    def plotSensor(self, data):
+        if isinstance(data,str):
+            data = self.loadData(data)
+
+        sensor = self.loadKeySeq(data,'sensor')
+        time = self.loadKeySeq(data,'time')
+
+        for i in range(5):
+            rawsensor = self.parseNone(sensor,i)
+            plt.plot(time,rawsensor)
+            plt.show()
+
 
     def plotAstolfi(self,data):
 
@@ -101,7 +115,7 @@ class  Visualization:
         
 
         ## plotting polygons
-        if map !=False:
+        if map is not False:
             polyMap = []
             for poly in map:
                 nPoly = []
@@ -122,21 +136,21 @@ class  Visualization:
                 ax.fill(x,y,color = polyFillColor)  
         
         #Displaying start and finish
-        if start != False:
+        if start is not False:
             startCircle = plt.Circle(start,radius=1,color="black")
             ax.add_artist(startCircle)
             ax.text(*start,"Start",fontsize=11,color=startColor,weight="bold")
-        if finish != False:
+        if finish is not False:
             finishCircle = plt.Circle(finish,radius=1,color="black")
             ax.add_artist(finishCircle)
             ax.text(*finish,"Finish",fontsize=11,color=finishColor,weight="bold")
             
-        if visPos != False:
+        if visPos is not False:
             for i in range(1,len(visPos)):
                 if ( not isinstance(visPos[i],bool) ) and ( not isinstance(visPos[i-1],bool) ):
                     plt.plot([ visPos[i-1][0],visPos[i][0] ],[ visPos[i-1][1],visPos[i][1] ],color="red",linestyle="dashed",linewidth=2)
                         
-        if kalPos != False:
+        if kalPos is not False:
             for i in range(1,len(kalPos)):
                 if ( not isinstance(kalPos[i],bool) ) and ( not isinstance(kalPos[i-1],bool) ):
                     plt.plot([ kalPos[i-1][0],kalPos[i][0] ],[ kalPos[i-1][1],kalPos[i][1] ],color="blue",linestyle="dashed",linewidth=2)
@@ -163,3 +177,5 @@ class  Visualization:
             self.plotTrajectories(data)
         elif plotType == 'ASTOLFI':
             self.plotAstolfi(data)
+        elif plotType == 'sensor':
+            self.plotSensor(data)
