@@ -44,7 +44,12 @@ class Robot:
         self.cnt=1                         # counter to repeat the loop for going straight in local avoidance 
         self.idx_sensor=(1,0)              # index of the sensor use for local avoidance to know which sensor are important depending if we are turning left or right
     
-    
+        self.pathcontrolx=[InitPos[0]]
+        self.pathcontroly=[InitPos[1]]
+
+        self.Global_x=[self.global_path[0][0]]
+        self.Global_y=[self.global_path[0][1]]
+
     def compute_pba(self,verbose = False):
         ''' compute the parameter for the astolfi controller : 
         self.Pos[2] is the angle theta of the robot 
@@ -241,6 +246,30 @@ class Robot:
                 
 
         return self.state
+
+    def compute_path(self):
+        go=1
+        while go:
+            #print('loop')
+            # compute rho, alpha and beta at time t+ts
+            self.compute_state_equation(1)
+            # convert rho, beta and alpha in x y and theta (need those parameters for the filter)
+            self.compute_Pos()
+            if abs(self.a)>m.pi/2:
+                self.a=0
+                self.Pos[2]=ut.compute_angle(self.Pos,self.global_path[self.node+1])
+            # check if we are close to the next point in the global path and change the next goal in the astolfi controller if it is the case
+            self.check()
+            self.pathcontrolx.append(self.Pos[0])
+            self.pathcontroly.append(self.Pos[1])
+            if self.p<3 and self.node==len(self.global_path)-2:
+                go=0
+
+        for i in range(1,len(self.global_path)):
+            self.Global_x.append(self.global_path[i][0])
+            self.Global_y.append(self.global_path[i][1])
+
+        print('len',len(self.global_path))
 
     def INIT(self,global_path, pos_init) : 
         
