@@ -45,6 +45,9 @@ class ComputeVision():
         self.verbose = verbose
         self.fileinput = fileinput
 
+        self.kalTrace = []
+        self.visTrace = []
+
 
     """ Starts the vision process """
     def run(self,d):
@@ -56,50 +59,84 @@ class ComputeVision():
 
    
     """ Displays processed data """
-    def display(self,d):
-        scalef = 5.
-        ilength = 8.
-        irad = 30
-        lineW = 2
+    def display(self,d, text = False, trace = False):
+        scalef = 5.     # scalefactor (the pixel grid is 5x larger than the map) 
+        ilength = 8.    # length of the indicator of robot position
+        irad = 30       # radius of the robot marker
+        lineW = 2       # linewidth for the plot
+
+        # colors of the different display elements
+        visColor = (0,0,255)
+        kalColor = (0,255,255)
+        mapColor = (0,255,0)
+        goalColor = (255,0,0)
+        pathColor = (0,0,0)
+        textColor = (0,0,0)
+
+        # saving trace of the robot (vision position)
+        if not isinstance(d['visPos'], bool):
+            self.kalTrace.append( (d['visPos'][0],d['visPos'][1]) )
+        # saving trace of the robot (kalman position)   
+        if not isinstance(d['fltPos'], bool):
+            self.visTrace.append( (d['fltPos'][0],d['fltPos'][1]) )
 
         #projecting the image
         tr_img =  cv2.cvtColor(self.vis.frame,cv2.COLOR_HSV2BGR)
 
-        font = cv2.FONT_HERSHEY_SIMPLEX 
+        font = cv2.FONT_HERSHEY_SIMPLEX # font of the text
+
+        #########################################################################
+        #                                                                       #
+        #                  Displaying robot position and trace                  #
+        #                                                                       #
+        #########################################################################
 
         #plotting the obstacles detected
         if not isinstance(self.vis.getMap(downscale=False),(bool)):
-            cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
+            cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, mapColor, 2)
         
-        #plotting the gobal navigation path
+        #plotting the gobal planned navigation path
         if not isinstance(self.path,bool):
             path = self.path
             for i in range(1,len(path)) :
-                cv2.line(tr_img,(int(path[i][0]*scalef),int(path[i][1]*scalef)),(int(path[i-1][0]*scalef),int(path[i-1][1]*scalef)),(0,0,0),thickness=2)
+                cv2.line(tr_img,(int(path[i][0]*scalef),int(path[i][1]*scalef)),(int(path[i-1][0]*scalef),int(path[i-1][1]*scalef)),pathColor ,thickness=2)
+
+        #plotting the robot's trace
+        if trace:
+            for i in range(1,len(self.kalTrace)):
+                seg = (self.kalTrace[i-1],self.kalTrace[i])
+                if not ( isinstance(seg[0][0],bool) or isinstance(seg[1][0],bool) ):
+                    cv2.line(tr_img,(int(seg[0][0]*scalef),int(seg[0][1]*scalef)),(int(seg[1][0]*scalef),int(seg[1][1]*scalef)),kalColor,thickness=2)
+
+            for i in range(1,len(self.visTrace)):
+                seg = (self.visTrace[i-1],self.visTrace[i])
+                if not ( isinstance(seg[0][0],bool) or isinstance(seg[1][0],bool) ):
+                    cv2.line(tr_img,(int(seg[0][0]*scalef),int(seg[0][1]*scalef)),(int(seg[1][0]*scalef),int(seg[1][1]*scalef)),visColor,thickness=2)
 
         fltPos = d['fltPos']
         if not isinstance(fltPos,bool):
             pt1 = (int(fltPos[0]*scalef), int(fltPos[1]*scalef))
             pt2 = (int(fltPos[0]*scalef+math.cos(fltPos[2])*scalef*ilength), int(fltPos[1]*5+math.sin(fltPos[2])*scalef*ilength))
 
-            cv2.circle(tr_img,(int(fltPos[0]*scalef),int(fltPos[1]*scalef)),irad,(0,255,255),thickness=2)
-            cv2.line(tr_img,pt1,pt2,(0,255,255),thickness=lineW)
-
-            # tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
-        
+            cv2.circle(tr_img,(int(fltPos[0]*scalef),int(fltPos[1]*scalef)),irad,kalColor,thickness=2)
+            cv2.line(tr_img,pt1,pt2,kalColor,thickness=lineW)
+            
         ## plotting the robot's position
         if not isinstance(self.rob,bool):
             pt1 = (int(self.rob[0]*scalef), int(self.rob[1]*scalef))
             pt2 = (int(self.rob[0]*scalef+math.cos(self.rbt_pos[2])*scalef*ilength), int(self.rob[1]*5+math.sin(self.rbt_pos[2])*scalef*ilength))
 
-            cv2.circle(tr_img,(int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)),irad,(0,0,255),thickness=2)
-            cv2.line(tr_img,pt1,pt2,(0,0,255),thickness=lineW)
+            cv2.circle(tr_img,(int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)),irad,visColor,thickness=2)
+            cv2.line(tr_img,pt1,pt2,visColor,thickness=lineW)
+            
+            if text:
+                tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)), font,  0.5, textColor, 1, cv2.LINE_AA) 
 
-            tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
         ## plotting the goal
         if not isinstance(self.stop,bool):
-            cv2.circle(tr_img,(int(self.stop[0]*scalef),int(self.stop[1]*scalef)),irad,(255,0,0),thickness=lineW)
-            tr_img = cv2.putText(tr_img, 'goal : ' + str(self.stop), (int(self.stop[0]*scalef),int(self.stop[1]*scalef)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
+            cv2.circle(tr_img,(int(self.stop[0]*scalef),int(self.stop[1]*scalef)),irad,goalColor,thickness=lineW)
+            if text:
+                tr_img = cv2.putText(tr_img, 'goal : ' + str(self.stop), (int(self.stop[0]*scalef),int(self.stop[1]*scalef)), font,  0.5, textColor, 1, cv2.LINE_AA) 
 
         return tr_img
         
@@ -217,7 +254,7 @@ class ComputeVision():
             d['visPos'] = self.rbt_pos
 
             ## displaying whatever was computed
-            disp = self.display(d)
+            disp = self.display(d,text = False , trace = True)
             cv2.imshow('frame',disp)
             key = cv2.waitKey(1) 
 
