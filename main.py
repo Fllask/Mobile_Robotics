@@ -24,14 +24,14 @@ import pickle
 
 from reprint import output ## allows for nice multiline dynamic printing
 
-from Thymio import Thymio
+from Functions.Thymio import Thymio
 
 #these are our modules
-from Utilities import Utilities
-from Global import Global
-import Vision as v
-from Robot import Robot
-from Filtering import Filtering
+from Functions.Utilities import Utilities
+from Functions.Global import Global
+import Functions.Vision as v
+from Functions.Robot import Robot
+from Functions.Filtering import Filtering
 # import Robot as r
 
 """ 
@@ -157,9 +157,9 @@ class ComputeVision():
        
         #getting the camera input
         if self.fileinput:
-            cap = "../sample_pictures/test_border.jpg"
+            cap = "sample_pictures/test_border.jpg"
         else:
-            cap = cv2.VideoCapture(1)
+            cap = cv2.VideoCapture(0)
         
 
         #get the first frame to test
@@ -180,7 +180,7 @@ class ComputeVision():
 
         while(initfailed):
             ret,frame = self.loadImage(cap)
-            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True,setextval = True)
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True,setextval = False)
             initfailed = self.vis.invalid
             flag = False
         
@@ -430,6 +430,8 @@ class RobotControl():
                 if round(time.process_time(),precision) > t: 
                     t = round(time.process_time(),precision)
                     """ Nice display for the robot control """
+                    if os.name == 'nt':
+                        os.system("cls")
                     if self.verbose:
                         output_lines['HISTORY SAMPLES'] = len(self.history)
                         output_lines['CTRL PERIOD'] = str(rt)
@@ -469,7 +471,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "COM3"
+    robotPort = "/dev/cu.usbmodem144101"
     saveFile = "history.pkl"
 
     """ Parsing stdin """
@@ -491,7 +493,7 @@ if __name__ == '__main__':
             print("RUNNING ROBOTLESS DEBUG MODE")
             norobot = True
         """ f flag is for saving control history """
-        if sys.argv[i] == "r":
+        if sys.argv[i] == "f":
             print("RUNNING WITH HISTORY")
             save = saveFile
 

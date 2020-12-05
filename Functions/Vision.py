@@ -5,6 +5,7 @@ from skimage import measure,exposure
 from scipy import linalg, ndimage
 import math
 import pickle
+import time
 
 DEFAULT = 0
 BIG = 1
@@ -103,7 +104,11 @@ class Vision:
 
     def setframe(self, imgraw):
         img_prep = preprocess(imgraw,self.valext)
-        img_real = cv2.warpPerspective(img_prep, self.trans, (500,500),borderMode=cv2.BORDER_REFLECT_101,flags = cv2.INTER_NEAREST)
+        t0 = time.process_time()
+        img_real = cv2.warpPerspective(img_prep, self.trans, (500,500),\
+                                          borderMode=cv2.BORDER_REFLECT_101,\
+                                          flags = cv2.INTER_NEAREST)
+        print("time: " +str(time.process_time()-t0))
         self.frame = img_real
         
     
