@@ -273,6 +273,12 @@ class Robot:
             self.state='TURN'
             return self.state
 
+        ####################################################################
+        #                                                                  #
+        #                     Check for kidnapping                         #
+        #                                                                  #
+        ####################################################################
+
         elif pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
             self.state = 'INIT'
             th.set_var('motor.left.target',0)
@@ -309,6 +315,21 @@ class Robot:
             is close to 0
            th : serial link to the thymio
            Ts : time of one iteration of the loop while (we recompute every Ts)'''
+        
+
+        ####################################################################
+        #                                                                  #
+        #                     Check for kidnapping                         #
+        #                                                                  #
+        ####################################################################
+        vect = self.get_states()
+
+        if pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
+            self.state = 'INIT'
+            th.set_var('motor.left.target',0)
+            th.set_var('motor.right.target',0)
+            time.sleep(3)
+            return self.state
 
         self.compute_rotation(Ts)
         # calculate the velocity and angular velocity and the value we need to give to the left and right motor
@@ -341,6 +362,20 @@ class Robot:
         th : serial link to the thymio
         Ts : time of one iteration of the loop while (we recompute every Ts)
         '''
+
+        ####################################################################
+        #                                                                  #
+        #                     Check for kidnapping                         #
+        #                                                                  #
+        ####################################################################
+        vect = self.get_states()
+
+        if pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
+            self.state = 'INIT'
+            th.set_var('motor.left.target',0)
+            th.set_var('motor.right.target',0)
+            time.sleep(3)
+            return self.state
 
         #turn left if the obstacle is on the right or turn right is the obstacle is on the left until the sensors don't sense the obstacle anymore
         if self.locstate==0: 
