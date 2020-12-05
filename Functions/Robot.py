@@ -337,7 +337,7 @@ class Robot:
             time.sleep(0.1)
 
             # get our pos with the filter
-            #filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
+            filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
             return self.Pos
         
     def TURN(self,th,Ts,filter, pos_cam, update_cam):
