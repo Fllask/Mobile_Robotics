@@ -45,7 +45,8 @@ class Robot:
         self.cnt=1                         # counter to repeat the loop for going straight in local avoidance 
         self.idx_sensor=(1,0)              # index of the sensor use for local avoidance to know which sensor are important depending if we are turning left or right
     
-    
+
+
     def compute_pba(self,verbose = False):
         ''' compute the parameter for the astolfi controller : 
         self.Pos[2] is the angle theta of the robot 
@@ -126,7 +127,7 @@ class Robot:
     def run_on_thymio(self,th):
         ''' give values to the motors of the thymio'''
         th.set_var("motor.left.target", self.ML)
-        th.set_var("motor.right.target", self.MR)
+        th.set_var("motor.right.target", self.MR+2) # to compensate for error between the two wheels
         
         return self.ML
    
@@ -165,7 +166,7 @@ class Robot:
         ''' function use to check if we detect a local obstacle :
         if the values of the sensor are above a treshold the robot goes in local mode'''
 
-        sensor= np.array(th["prox.horizontal"]) #get values from the sensors
+        self.sensor= np.array(th["prox.horizontal"]) #get values from the sensors
         if sensor[0]>1000 or sensor[1]>1000 or sensor[2]>3000 or sensor[3]>1000 or sensor[4]>1000: # threshold a modifi� 
             self.state='LOCAL'
             right=sensor[4]+sensor[3]   #values of the right sensors   
@@ -200,7 +201,7 @@ class Robot:
         ''' check if we still need to be in local avoidance or if we can go in global avoidance 
         if the thymio is pointing to the next goal and that we don't feel any local obstacle we go back in global avoidance'''
 
-        sensor= np.array(th["prox.horizontal"])
+        #sensor= np.array(th["prox.horizontal"])
         #if sensor[self.idx_sensor[1]]<1:
         angle=ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
 
@@ -216,6 +217,37 @@ class Robot:
                 
 
         return self.state
+
+    def compute_path(self):
+        go=1
+        while go:
+            #print('loop')
+
+            self.pathcontrolx=[InitPos[0]]
+            self.pathcontroly=[InitPos[1]]
+
+            self.Global_x=[self.global_path[0][0]]
+            self.Global_y=[self.global_path[0][1]]
+
+            # compute rho, alpha and beta at time t+ts
+            self.compute_state_equation(1)
+            # convert rho, beta and alpha in x y and theta (need those parameters for the filter)
+            self.compute_Pos()
+            if abs(self.a)>m.pi/2:
+                self.a=0
+                self.Pos[2]=ut.compute_angle(self.Pos,self.global_path[self.node+1])
+            # check if we are close to the next point in the global path and change the next goal in the astolfi controller if it is the case
+            self.check()
+            self.pathcontrolx.append(self.Pos[0])
+            self.pathcontroly.append(self.Pos[1])
+            if self.p<3 and self.node==len(self.global_path)-2:
+                go=0
+
+        for i in range(1,len(self.global_path)):
+            self.Global_x.append(self.global_path[i][0])
+            self.Global_y.append(self.global_path[i][1])
+
+        print('len',len(self.global_path))
 
     def INIT(self,global_path, pos_init) : 
         ''' the robot stays in INIT state until it gets a global path and an initial position
@@ -393,7 +425,7 @@ class Robot:
         # go straight during 20 loop :
         if self.locstate==1:
             self.cnt=self.cnt+1
-            self.u[0]=3 # go straight
+            self.u[0]=2 # go straight
             self.u[1]=0
             # go straight
             self.compute_straight_local(Ts,self.u[0])
