@@ -45,11 +45,7 @@ class Robot:
         self.cnt=1                         # counter to repeat the loop for going straight in local avoidance 
         self.idx_sensor=(1,0)              # index of the sensor use for local avoidance to know which sensor are important depending if we are turning left or right
     
-        self.pathcontrolx=[InitPos[0]]
-        self.pathcontroly=[InitPos[1]]
 
-        self.Global_x=[self.global_path[0][0]]
-        self.Global_y=[self.global_path[0][1]]
 
     def compute_pba(self,verbose = False):
         ''' compute the parameter for the astolfi controller : 
@@ -170,7 +166,7 @@ class Robot:
         ''' function use to check if we detect a local obstacle :
         if the values of the sensor are above a treshold the robot goes in local mode'''
 
-        sensor= np.array(th["prox.horizontal"]) #get values from the sensors
+        self.sensor= np.array(th["prox.horizontal"]) #get values from the sensors
         if sensor[0]>1000 or sensor[1]>1000 or sensor[2]>3000 or sensor[3]>1000 or sensor[4]>1000: # threshold a modifi� 
             self.state='LOCAL'
             right=sensor[4]+sensor[3]   #values of the right sensors   
@@ -226,6 +222,13 @@ class Robot:
         go=1
         while go:
             #print('loop')
+
+            self.pathcontrolx=[InitPos[0]]
+            self.pathcontroly=[InitPos[1]]
+
+            self.Global_x=[self.global_path[0][0]]
+            self.Global_y=[self.global_path[0][1]]
+
             # compute rho, alpha and beta at time t+ts
             self.compute_state_equation(1)
             # convert rho, beta and alpha in x y and theta (need those parameters for the filter)

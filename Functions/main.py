@@ -470,13 +470,13 @@ if __name__ == '__main__':
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
     robotPort = "COM3"
-    saveFile = "history.pkl"
+    saveFile = "run5_local_avoidance.pkl"
 
     """ Parsing stdin """
     verbose = False
     fileinput = False
     norobot = False
-    save = False
+    save = saveFile
     for i in range (1,len(sys.argv)):
         """ v flag is verbose """
         if sys.argv[i] == "v":
