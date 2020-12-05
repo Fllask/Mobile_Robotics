@@ -80,7 +80,7 @@ class Vision:
     def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3),\
                  verbose = False, setmanually = False, setextval = False):
         self.camera = camera
-        self.valext = np.percentile(image, (10, 90)).astype(int) #default value
+        self.valext = tuple(np.percentile(image, (10, 90)).astype(int)) #default value
         if setextval:
             self.valext = adjustlum(image,self.valext)
             
@@ -103,7 +103,7 @@ class Vision:
 
     def setframe(self, imgraw):
         img_prep = preprocess(imgraw,self.valext)
-        img_real = cv2.warpPerspective(img_prep, self.trans, (500,500),borderMode=cv2.BORDER_REFLECT_101)
+        img_real = cv2.warpPerspective(img_prep, self.trans, (500,500),borderMode=cv2.BORDER_REFLECT_101,flags = cv2.INTER_NEAREST)
         self.frame = img_real
         
     
@@ -353,9 +353,7 @@ def preprocess(img, extval= (10,80)):
     #imgsmooth = cv2.GaussianBlur(imgbright[:,:,1:],(11,11),0)
     #imgrecomp = imgbright
     #imgrecomp[:,:,1:]= imgsmooth
-    imgHSV = cv2.cvtColor(imgbright,cv2.COLOR_BGR2HSV)#.get().astype(np.uint8)
-    #imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
-    #imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
+    imgHSV = cv2.cvtColor(imgbright,cv2.COLOR_BGR2HSV)
     return cv2.UMat(imgHSV)
     
 def projection(corners):
