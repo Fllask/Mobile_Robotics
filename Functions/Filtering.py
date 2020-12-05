@@ -7,9 +7,9 @@ import serial
 import numpy as np
 import math as m
 
-from Thymio import Thymio
-from Timer import RepeatedTimer
-from Robot import Robot
+from Functions.Thymio import Thymio
+from Functions.Timer import RepeatedTimer
+from Functions.Robot import Robot
 
 
 class Filtering:
@@ -28,12 +28,16 @@ class Filtering:
         
     
     @staticmethod
-    def update(X_est,P_est_priori, zk, H, A, R,verbose=False):
-
+    def update(X_est,P_est_priori, zk, H, A, R,update_cam, verbose=False):
+        
         innovation = zk - np.dot(H,X_est)
+       
+        if update_cam:
+            innovation[2]= (m.pi+innovation[2])%(2*m.pi)-m.pi
+
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        #print('K\n',K)
+
         X_est = X_est + np.dot(K,innovation)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
         return X_est, P_est
@@ -65,11 +69,12 @@ class Filtering:
 
         #Update for velocity sensor
 
-        X_est, P_est = self.update(X_est, P_est,V_measured, self.Hvel, A, self.Rvel)
+        X_est, P_est = self.update(X_est, P_est,V_measured, self.Hvel, A, self.Rvel,False)
 
         #Update for camera sensor
         if update_cam :
-            X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
+
+            X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam, update_cam)
 
 
         #return
@@ -100,9 +105,6 @@ class Filtering:
 
        theta = self.robot.Pos[2]
        vTOm = self.robot.vTOm
-
-       #if 'full' in cov_type :
-
            
        if 'diag' in cov_type :
             self.Q = np.eye(5,5) * cov_type['diag']
@@ -149,7 +151,5 @@ class Filtering:
             self.Q[4][2] = self.Q[2][4]
             self.Q[4][3] = self.Q[3][4]
             self.Q[4][4] = sig*Ts
-
-            print(self.Q)
        return self.Q
 

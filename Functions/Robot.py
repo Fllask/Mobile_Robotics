@@ -1,4 +1,4 @@
-from Thymio import Thymio
+from Functions.Thymio import Thymio
 import os
 import sys
 import time
@@ -7,7 +7,8 @@ import math as m
 import pandas as pd
 import math as m
 import serial
-from Utilities import Utilities
+from Functions.Global import Global
+from Functions.Utilities import Utilities
 ut = Utilities()
 
 """ Developped by: Thomas """
@@ -60,16 +61,11 @@ class Robot:
         self.p=ut.compute_distance(self.Pos,self.global_path[self.node+1])
         self.bref=-ut.compute_angle(self.global_path[self.node],self.global_path[self.node+1])
         self.b=-self.Pos[2]-self.bref-self.a
+        self.b=(m.pi+self.b)%(2*m.pi)-m.pi
         if verbose:
             print("a : " + str(self.a) + " , b : " + str(self.b) + " , p : " + str(self.p)) 
         return self.b
 
-    
-
-    
-
-
-        
     def astofli_controller(self,p,a,b):
         ''' compute the derivative of rho beta and alpha'''
         p_dot=-self.kp*m.cos(a)
@@ -77,11 +73,8 @@ class Robot:
         b_dot=(-self.kp*m.sin(a))/p
         return p_dot,a_dot,b_dot
 
-
     def compute_state_equation(self,Ts):
         ''' use runge Kutta 2 to get rho alpha and beta at time t+Ts '''
-
-
         [p_dot1,a_dot1,b_dot1]=self.astofli_controller(self.p,self.a,self.b)
 
         p1=self.p+Ts*p_dot1
@@ -94,11 +87,9 @@ class Robot:
         self.a=self.a+Ts/2.*a_dot1+Ts/2.*a_dot2
         self.b=self.b+Ts/2.*b_dot1+Ts/2.*b_dot2
         
-
         self.u[0]=self.kp
         self.u[1]=(self.ka*self.a+self.kb*(self.b))/self.p
 
-    
     def compute_rotation(self,Ts):
         ''' If alpha is not between -pi/2 and pi/2 we make the robot turn on himself before using the astolfi controller '''
         if self.a>0:
@@ -124,8 +115,6 @@ class Robot:
         # u[0] is the speed of the robot in cm/s
         # u[1] is the angular speed of the robot in cm/s
 
-        
-
         vM=self.u[0]*self.vTOm
         wM=self.u[1]*self.wTOm
         
@@ -139,17 +128,13 @@ class Robot:
         self.ML=ML
         self.MR=MR
 
-        
-
-    
     def run_on_thymio(self,th):
         ''' give values to the motors of the thymio'''
         th.set_var("motor.left.target", self.ML)
         th.set_var("motor.right.target", self.MR+2) # to compensate for error between the two wheels
         
         return self.ML
-
-    
+   
     def compute_Pos(self):
         ''' knowing rho alpha and beta we recompute the values for x y and theta that will be send later to the filter '''
         nextpos=self.global_path[self.node+1]
@@ -167,10 +152,8 @@ class Robot:
             self.compute_pba()      #compute a new alpha,beta,gamma
         return self.node
 
-    # FUNCTION USE FOR THE LOCAL AVOIDANCE : 
+    # FUNCTIONs USED FOR THE LOCAL AVOIDANCE : 
 
-    
-    
     def compute_straight_local(self,Ts,v):
         ''' compute the new postition of the robot when it goes straight '''
         self.Pos[0]=self.Pos[0]+m.cos(self.Pos[2])*v*Ts
@@ -182,8 +165,7 @@ class Robot:
         self.Pos[2]=self.Pos[2]+w*Ts
         self.Pos[2]=(m.pi+self.Pos[2])%(2*m.pi)-m.pi
         return self.Pos[2]
-
-    
+   
     def check_localobstacle(self,th) :
         ''' function use to check if we detect a local obstacle :
         if the values of the sensor are above a treshold the robot goes in local mode'''
@@ -191,7 +173,6 @@ class Robot:
         sensor= np.array(th["prox.horizontal"]) #get values from the sensors
         if sensor[0]>1000 or sensor[1]>1000 or sensor[2]>3000 or sensor[3]>1000 or sensor[4]>1000: # threshold a modifi� 
             self.state='LOCAL'
-            print('state',self.state)
             right=sensor[4]+sensor[3]   #values of the right sensors   
             left=sensor[0]+sensor[1]    #values of the left sensors
             if right>left:              #turn right if it feels the object on the left
@@ -201,9 +182,7 @@ class Robot:
                 self.turn=1
                 self.idx_sensor=(1,0)
         return self.state
-
-   
-    
+  
     def checkstate0(self,th):
         ''' check if we are still in localstate 0 (turn left or right) or if we can go to localstate 1 (go straight) '''
         sensor= np.array(th["prox.horizontal"])
@@ -211,8 +190,7 @@ class Robot:
             self.locstate=1
             self.cnt=1
         return self.locstate
-
-     
+ 
     def checkstate2(self,th):
         '''check if we are still in localstate 2 (turn right or left) or if we can go to localstate 0 (turn left or right)
         turn in the direction of the obstacle until we feel it then go back in local state 0 to turn in the other side
@@ -223,7 +201,6 @@ class Robot:
             self.locstate=0
         return self.locstate
 
-    
     def checkout(self,th):
         ''' check if we still need to be in local avoidance or if we can go in global avoidance 
         if the thymio is pointing to the next goal and that we don't feel any local obstacle we go back in global avoidance'''
@@ -232,9 +209,7 @@ class Robot:
         #if sensor[self.idx_sensor[1]]<1:
         angle=ut.compute_angle(self.Pos[0:2],self.global_path[self.node+1])
 
-        test=(m.pi+self.Pos[2]-angle)%2*m.pi-m.pi
-        test=abs(test)
-        print(test)
+        test=(m.pi+self.Pos[2]-angle)%(2*m.pi)-m.pi
         if abs(test)<0.1:
             self.state='INIT'
             self.u[0]=0
@@ -272,12 +247,11 @@ class Robot:
         print('len',len(self.global_path))
 
     def INIT(self,global_path, pos_init) : 
-        
-        self.state = 'INIT'
         ''' the robot stays in INIT state until it gets a global path and an initial position
         global path : give false if no global path else it gives the global path in a tuple
         pos_init: the initial position (x,y,theta)'''
 
+        self.state = 'INIT'
         if global_path is not False :
             self.global_path = global_path
         else :
@@ -304,18 +278,21 @@ class Robot:
 
         return vect
 
-    def ASTOLFI(self,th,Ts,filter,pos_cam):
+    def ASTOLFI(self,th,Ts,filter,pos_cam, update_cam):
         ''' Astolfi controller with constant speed is used to control the robot when the angle alpha is between -pi/2 and pi/2
              th : serial link to the thymio
              Ts : time of one iteration of the loop while (we recompute every Ts)
              filter: a kalman filter is used using the measurement of the left and right motor and the measurement of the camera
              pos_cam: measurement of the camera'''
         
+        #[give : x,y,theta,vr,vl] to the filter : 
+        vect = self.get_states()
+
         # check if we detect a local obstacle
         self.check_localobstacle(th)
         
         if self.state == 'LOCAL' :
-            return
+            return self.state
 
         # converting x,y and theta in rho, beta and alpha (Astolfi controller)
         self.compute_pba()
@@ -324,6 +301,20 @@ class Robot:
             # calculate rho, beta and alpha at time t+1(Astolfi controller)
             self.state='TURN'
             return self.state
+
+        ####################################################################
+        #                                                                  #
+        #                     Check for kidnapping                         #
+        #                                                                  #
+        ####################################################################
+
+        elif pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
+            self.state = 'INIT'
+            th.set_var('motor.left.target',0)
+            th.set_var('motor.right.target',0)
+            time.sleep(3)
+            return self.state
+
         else :
             # compute rho, alpha and beta at time t+ts
             self.compute_state_equation(Ts)
@@ -343,20 +334,31 @@ class Robot:
             # sleep 0.1 second :
             time.sleep(0.1)
 
-            # check if we have a valid data for the measurement of the position in the camera
-            update_cam = False if pos_cam is False or (pos_cam[0] == 0) else True
-
             # get our pos with the filter
             filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
             return self.Pos
         
-
-    def TURN(self,th,Ts,filter, pos_cam):
+    def TURN(self,th,Ts,filter, pos_cam, update_cam):
 
         '''if abs(alpha)>pi/2 we can't use astolfi and we first need to rotate the robot on itslef. We make it turn on  itself until alpha 
             is close to 0
            th : serial link to the thymio
            Ts : time of one iteration of the loop while (we recompute every Ts)'''
+        
+
+        ####################################################################
+        #                                                                  #
+        #                     Check for kidnapping                         #
+        #                                                                  #
+        ####################################################################
+        vect = self.get_states()
+
+        if pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
+            self.state = 'INIT'
+            th.set_var('motor.left.target',0)
+            th.set_var('motor.right.target',0)
+            time.sleep(3)
+            return self.state
 
         self.compute_rotation(Ts)
         # calculate the velocity and angular velocity and the value we need to give to the left and right motor
@@ -374,15 +376,12 @@ class Robot:
         # sleep 0.1 second :
         time.sleep(0.1)
 
-        # check if we have a valid data for the measurement of the position in the camera
-        update_cam = False if pos_cam is False or (pos_cam[0] == 0) else True
-
         # get our pos with the filter
         filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
 
         return self.state
 
-    def LOCAL(self,th,Ts, filter, pos_cam):
+    def LOCAL(self,th,Ts, filter, pos_cam, update_cam):
         ''' we get around the local obstacle  until we we don't detect any obstacle in front of the robot when the robot is oriented 
         in the direction of the goal
         the robot will enter in init mode until we recompute a global path.
@@ -392,6 +391,20 @@ class Robot:
         th : serial link to the thymio
         Ts : time of one iteration of the loop while (we recompute every Ts)
         '''
+
+        ####################################################################
+        #                                                                  #
+        #                     Check for kidnapping                         #
+        #                                                                  #
+        ####################################################################
+        vect = self.get_states()
+
+        if pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
+            self.state = 'INIT'
+            th.set_var('motor.left.target',0)
+            th.set_var('motor.right.target',0)
+            time.sleep(3)
+            return self.state
 
         #turn left if the obstacle is on the right or turn right is the obstacle is on the left until the sensors don't sense the obstacle anymore
         if self.locstate==0: 
@@ -447,10 +460,16 @@ class Robot:
             #[give : x,y,theta,vr,vl] to the filter : 
             vect = self.get_states()
 
-            # check if we have a valid data for the measurement of the position in the camera
-            update_cam = False if pos_cam is False or (pos_cam[0] == 0) else True
-
             # get our pos with the filter
             filter.compute_kalman(pos_cam,vect,th,Ts,update_cam)
 
         return self.state
+
+    def FINISH(self,th, go) :
+        if self.p is not None :
+            if self.p<5 and self.node==len(self.global_path)-2:
+                th.set_var("motor.left.target", 0)
+                th.set_var("motor.right.target", 0)
+                print('FININSH!!!!')
+                go = 0
+        return go

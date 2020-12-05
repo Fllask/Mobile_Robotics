@@ -5,6 +5,7 @@ from skimage import measure,exposure
 from scipy import linalg, ndimage
 import math
 import pickle
+import time
 
 DEFAULT = 0
 BIG = 1
@@ -80,7 +81,7 @@ class Vision:
     def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3),\
                  verbose = False, setmanually = False, setextval = False):
         self.camera = camera
-        self.valext = np.percentile(image, (10, 90)).astype(int) #default value
+        self.valext = tuple(np.percentile(image, (10, 90)).astype(int)) #default value
         if setextval:
             self.valext = adjustlum(image,self.valext)
             
@@ -103,7 +104,11 @@ class Vision:
 
     def setframe(self, imgraw):
         img_prep = preprocess(imgraw,self.valext)
-        img_real = cv2.warpPerspective(img_prep, self.trans, (500,500),borderMode=cv2.BORDER_REFLECT_101)
+        t0 = time.process_time()
+        img_real = cv2.warpPerspective(img_prep, self.trans, (500,500),\
+                                          borderMode=cv2.BORDER_REFLECT_101,\
+                                          flags = cv2.INTER_NEAREST)
+        # print("time: " +str(time.process_time()-t0))
         self.frame = img_real
         
     
@@ -236,11 +241,8 @@ class colorfilter:
                 self.morph = NONE
 
     def get_mask(self,image):
-       
-        # (wx,wy) = mask.shape
 
-        # print(str(wx) + " " + str(wy))
-        #c'est sale, mais comme ça ça passe le wrapping
+        
         if self.inv:
             band1 = np.copy(self.band)
             band2 = np.copy(self.band)
@@ -251,12 +253,6 @@ class colorfilter:
             mask = cv2.bitwise_or(mask1,mask2)
         else:
              mask = np.multiply(cv2.inRange(image,self.band[:,0],self.band[:,1]).get().astype(np.uint8),(1/255))
-
-        # if self.color == "BLACK":
-        #     img = image.get().astype(np.uint8)
-        #     if self.camera == "ANDROID FLASK":
-        #          mask += cv2.inRange(img,np.array([127,0,0]),np.array([179,255,55]))
-        #          cv2.threshold(mask,0.5,1,0,dst = mask)
             
         mask = cv2.UMat(mask) ## convert the mask to an opencl object for fast morphology
             
@@ -269,20 +265,6 @@ class colorfilter:
             mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, np.ones((5,5)).astype("uint8"))
         return cv2.UMat(mask)
         
-    
-    
-
-    # def change_color(self, img, preprocessed = True, use_watershed = True):
-    #     if isinstance(img, cv2.UMat):
-    #         img = img.get().astype(int)
-    #     else:
-    #         img = img.astype(int)
-    #     if not preprocessed:
-    #         img = preprocess(img)
-    #     print("click on "+str(self.color))
-    #     cv2.namedWindow("image")
-    #     cv2.setMouseCallback("image",watershed,img)
-    #     cv2.imshow("image", cv2.cvtColor(img.astype("uint8"),cv2.COLOR_HSV2BGR))
         
         
 def manually_get_centroid(img, preprocessed = False):
@@ -339,8 +321,6 @@ def watershed(event, y_ori, x_ori, flags, img):
                             listnew.append((x,y))
                             if abs(img[coord][0]-img[x,y,0]) > abs(180-abs(img[coord][0]-img[x,y,0])):
                                 flagWrap = True
-                        # else:
-                        #     print("difh: "+str(dif)+" difs: "+str(difs)+" difv: "+str(difv))
         mask_watershed =cv2.bitwise_or(visited,mask_watershed)
         
         
@@ -353,9 +333,7 @@ def preprocess(img, extval= (10,80)):
     #imgsmooth = cv2.GaussianBlur(imgbright[:,:,1:],(11,11),0)
     #imgrecomp = imgbright
     #imgrecomp[:,:,1:]= imgsmooth
-    imgHSV = cv2.cvtColor(imgbright,cv2.COLOR_BGR2HSV)#.get().astype(np.uint8)
-    #imgHSV[:,:,1] = cv2.equalizeHist(imgHSV[:,:,1])
-    #imgHSV[:,:,2] = cv2.equalizeHist(imgHSV[:,:,2])
+    imgHSV = cv2.cvtColor(imgbright,cv2.COLOR_BGR2HSV)
     return cv2.UMat(imgHSV)
     
 def projection(corners):
