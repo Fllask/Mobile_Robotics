@@ -300,7 +300,7 @@ class RobotControl():
                 pos_cam = np.array(d['visPos'],ndmin=2).T
             else :
                 pos_cam = False
-            print(pos_cam)
+            #print(pos_cam)
             #########################################################################
             #                                                                       #
             #                           FSM of the Robot                            #
@@ -319,7 +319,7 @@ class RobotControl():
                 #print('dpath',d['path'])
                 thym.INIT(d['path'],d['visPos'])
 
-            print(thym.state)
+            #print(thym.state)
 
             tps2 = time.monotonic()
             Ts=tps2-tps1
