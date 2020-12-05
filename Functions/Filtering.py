@@ -33,12 +33,11 @@ class Filtering:
         innovation = zk - np.dot(H,X_est)
        
         if update_cam:
-            
             innovation[2]= (m.pi+innovation[2])%(2*m.pi)-m.pi
-            print('inn\n', innovation)
+
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
-        #print('K\n',K)
+
         X_est = X_est + np.dot(K,innovation)
         P_est = P_est_priori - np.dot(K,np.dot(H, P_est_priori))
         return X_est, P_est
@@ -155,7 +154,5 @@ class Filtering:
             self.Q[4][2] = self.Q[2][4]
             self.Q[4][3] = self.Q[3][4]
             self.Q[4][4] = sig*Ts
-
-            print(self.Q)
        return self.Q
 
