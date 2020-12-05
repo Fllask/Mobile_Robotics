@@ -28,9 +28,14 @@ class Filtering:
         
     
     @staticmethod
-    def update(X_est,P_est_priori, zk, H, A, R,verbose=False):
-
+    def update(X_est,P_est_priori, zk, H, A, R,update_cam, verbose=False):
+        
         innovation = zk - np.dot(H,X_est)
+       
+        if update_cam:
+            
+            innovation[2]= (m.pi+innovation[2])%(2*m.pi)-m.pi
+            print('inn\n', innovation)
         S = np.dot(H, np.dot(P_est_priori, H.T)) + R
         K = np.dot(P_est_priori, np.dot(H.T, np.linalg.inv(S)))
         #print('K\n',K)
@@ -65,11 +70,12 @@ class Filtering:
 
         #Update for velocity sensor
 
-        X_est, P_est = self.update(X_est, P_est,V_measured, self.Hvel, A, self.Rvel)
+        X_est, P_est = self.update(X_est, P_est,V_measured, self.Hvel, A, self.Rvel,False)
 
         #Update for camera sensor
         if update_cam :
-            X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam)
+
+            X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam, update_cam)
 
 
         #return

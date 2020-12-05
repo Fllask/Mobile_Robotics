@@ -304,7 +304,7 @@ class RobotControl():
 
     def saveHistory(self):
         if self.verbose:
-            print("-> Saving run history as : " + self.save)
+            print("-> Saving run history as : " + str(self.save))
         pickle.dump(self.history, open(self.save,"wb"))
 
     """ Main control loop """
@@ -353,7 +353,7 @@ class RobotControl():
 
         init = False
         go=1
-        cnt = 1
+        cnt = 0
 
         """ wait until vision is go"""
         while not d['started']:
@@ -362,20 +362,21 @@ class RobotControl():
         with output(output_type='dict') as output_lines:
             while go:
 
+                # Some simulation variables
                 tps1 = time.monotonic()
-                
                 cnt += 1
 
                 #########################################################################
-                # get the position of the robot given by the camera when it is possible #
-                #          if not possible set the updateWithCam bolean to False        # 
+                # get every 1 second the position of the robot given by the camera      #
+                # when it is possible if not possible set the updateWithCam bolean      #    
+                #                           to False                                    # 
                 #########################################################################
+                pos_cam = np.array(d['visPos'],ndmin=2).T
 
                 if not cnt%10 : 
-                    pos_cam = np.array(d['visPos'],ndmin=2).T
+                    update_cam = False if pos_cam is False or (pos_cam[0] == 0) else True
                 else :
-                    pos_cam = False
-
+                    update_cam = False
 
                 #########################################################################
                 #                                                                       #
@@ -385,33 +386,41 @@ class RobotControl():
 
                 if not self.norobot:
                     if thym.state =='ASTOLFI' : 
-                        thym.ASTOLFI(self.th,Ts, filter,pos_cam)
+                        thym.ASTOLFI(self.th,Ts, filter,pos_cam, update_cam)
+                        if thym.state == 'INIT':
+                            d['pathComputed'] = False
+                            d['path'] = False
                     elif thym.state == 'TURN' :
-                        thym.TURN(self.th,Ts, filter, pos_cam)
+                        thym.TURN(self.th,Ts, filter, pos_cam, update_cam)
                     elif thym.state == 'LOCAL' :
-                        thym.LOCAL(self.th,Ts, filter, pos_cam)
+                        thym.LOCAL(self.th,Ts, filter, pos_cam, update_cam)
+                        # Tell vision to recompute a path
                         if thym.state == 'INIT':
                             d['pathComputed'] = False
                             d['path'] = False
                     elif thym.state == 'INIT' :
-                        # print('dpath',d['path'])
                         thym.INIT(d['path'],d['visPos'])
 
-
+                #########################################################################
+                #                                                                       #
+                #            Compute the time the control took, to adjust Ts            #
+                #                                                                       #
+                #########################################################################
 
                 tps2 = time.monotonic()
                 Ts=tps2-tps1
                 d['fltPos'] = thym.Pos
 
-                if thym.p is not None :
-                    if thym.p<5 and thym.node==len(thym.global_path)-2:
-                        if not self.norobot:
-                            self.th.set_var("motor.left.target", 0)
-                            self.th.set_var("motor.right.target", 0)
-                        print('FININSH!!!!')
-                        tfinal=time.monotonic()
-                        go = 0
+                
+                #########################################################################
+                #                                                                       #
+                #                  Check if the robot is at the goal                    #
+                #                                                                       #
+                #########################################################################
 
+                if not self.norobot:
+                    go = thym.FINISH(self.th, go)
+                    tfinal=time.monotonic()                    
 
                 rt = time.process_time() - t0
                 t0 = time.process_time()
@@ -460,7 +469,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "COM6"
+    robotPort = "COM3"
     saveFile = "history.pkl"
 
     """ Parsing stdin """
