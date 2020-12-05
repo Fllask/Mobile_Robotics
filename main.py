@@ -196,6 +196,7 @@ class ComputeVision():
             self.stop = tuple(self.stop)
         else:
             self.stop = False
+        d['goal']= self.stop
         self.path = False
 
 
@@ -220,7 +221,7 @@ class ComputeVision():
         d['map'] = self.obstacles
         #self.pathComputed = False
         
-        self.g = Global(self.obstacles,False,self.stop,margin=1.5)
+        self.g = Global(self.obstacles,False,self.stop,margin=0.5)
         
             
                 
