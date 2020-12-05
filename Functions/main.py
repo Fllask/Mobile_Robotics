@@ -180,7 +180,7 @@ class ComputeVision():
 
         while(initfailed):
             ret,frame = self.loadImage(cap)
-            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True)
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True,setextval=True)
             initfailed = self.vis.invalid
             flag = False
         
@@ -411,6 +411,7 @@ class RobotControl():
                         print('FININSH!!!!')
                         tfinal=time.monotonic()
                         go = 0
+                        d['running'] = False
 
 
                 rt = time.process_time() - t0
@@ -460,7 +461,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "COM7"
+    robotPort = "/dev/cu.usbmodem144101"
     saveFile = "history.pkl"
 
     """ Parsing stdin """
@@ -482,7 +483,7 @@ if __name__ == '__main__':
             print("RUNNING ROBOTLESS DEBUG MODE")
             norobot = True
         """ f flag is for saving control history """
-        if sys.argv[i] == "r":
+        if sys.argv[i] == "f":
             print("RUNNING WITH HISTORY")
             save = saveFile
 
