@@ -20,6 +20,9 @@ if cv2.ocl.haveOpenCL():
 import numpy as np
 import math
 import copy
+import pickle
+
+from reprint import output ## allows for nice multiline dynamic printing
 
 from Thymio import Thymio
 
@@ -38,8 +41,12 @@ from Filtering import Filtering
 """
 class ComputeVision():
     """ Constructor of the ComputeVision class"""
-    def __init__(self,verbose):
+    def __init__(self,verbose, fileinput):
         self.verbose = verbose
+        self.fileinput = fileinput
+
+        self.kalTrace = []
+        self.visTrace = []
 
 
     """ Starts the vision process """
@@ -52,55 +59,94 @@ class ComputeVision():
 
    
     """ Displays processed data """
-    def display(self,d):
-        scalef = 5.
-        ilength = 8.
-        irad = 30
-        lineW = 2
+    def display(self,d, text = False, trace = False):
+        scalef = 5.     # scalefactor (the pixel grid is 5x larger than the map) 
+        ilength = 8.    # length of the indicator of robot position
+        irad = 30       # radius of the robot marker
+        lineW = 2       # linewidth for the plot
+
+        # colors of the different display elements
+        visColor = (0,0,255)
+        kalColor = (0,255,255)
+        mapColor = (0,255,0)
+        goalColor = (255,0,0)
+        pathColor = (0,0,0)
+        textColor = (0,0,0)
+
+        # saving trace of the robot (vision position)
+        if not isinstance(d['visPos'], bool):
+            self.kalTrace.append( (d['visPos'][0],d['visPos'][1]) )
+        # saving trace of the robot (kalman position)   
+        if not isinstance(d['fltPos'], bool):
+            self.visTrace.append( (d['fltPos'][0],d['fltPos'][1]) )
 
         #projecting the image
         tr_img =  cv2.cvtColor(self.vis.frame,cv2.COLOR_HSV2BGR)
 
-        font = cv2.FONT_HERSHEY_SIMPLEX 
+        font = cv2.FONT_HERSHEY_SIMPLEX # font of the text
+
+        #########################################################################
+        #                                                                       #
+        #                  Displaying robot position and trace                  #
+        #                                                                       #
+        #########################################################################
 
         #plotting the obstacles detected
         if not isinstance(self.vis.getMap(downscale=False),(bool)):
-            cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, (0,255,0), 2)
+            cv2.drawContours(tr_img, self.vis.getMap(downscale=False), -1, mapColor, 2)
         
-        #plotting the gobal navigation path
+        #plotting the gobal planned navigation path
         if not isinstance(self.path,bool):
             path = self.path
             for i in range(1,len(path)) :
-                cv2.line(tr_img,(int(path[i][0]*scalef),int(path[i][1]*scalef)),(int(path[i-1][0]*scalef),int(path[i-1][1]*scalef)),(0,0,0),thickness=2)
+                cv2.line(tr_img,(int(path[i][0]*scalef),int(path[i][1]*scalef)),(int(path[i-1][0]*scalef),int(path[i-1][1]*scalef)),pathColor ,thickness=2)
+
+        #plotting the robot's trace
+        if trace:
+            for i in range(1,len(self.kalTrace)):
+                seg = (self.kalTrace[i-1],self.kalTrace[i])
+                if not ( isinstance(seg[0][0],bool) or isinstance(seg[1][0],bool) ):
+                    cv2.line(tr_img,(int(seg[0][0]*scalef),int(seg[0][1]*scalef)),(int(seg[1][0]*scalef),int(seg[1][1]*scalef)),kalColor,thickness=2)
+
+            for i in range(1,len(self.visTrace)):
+                seg = (self.visTrace[i-1],self.visTrace[i])
+                if not ( isinstance(seg[0][0],bool) or isinstance(seg[1][0],bool) ):
+                    cv2.line(tr_img,(int(seg[0][0]*scalef),int(seg[0][1]*scalef)),(int(seg[1][0]*scalef),int(seg[1][1]*scalef)),visColor,thickness=2)
 
         fltPos = d['fltPos']
         if not isinstance(fltPos,bool):
             pt1 = (int(fltPos[0]*scalef), int(fltPos[1]*scalef))
             pt2 = (int(fltPos[0]*scalef+math.cos(fltPos[2])*scalef*ilength), int(fltPos[1]*5+math.sin(fltPos[2])*scalef*ilength))
 
-            cv2.circle(tr_img,(int(fltPos[0]*scalef),int(fltPos[1]*scalef)),irad,(0,255,255),thickness=2)
-            cv2.line(tr_img,pt1,pt2,(0,255,255),thickness=lineW)
-
-            # tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
-        
+            cv2.circle(tr_img,(int(fltPos[0]*scalef),int(fltPos[1]*scalef)),irad,kalColor,thickness=2)
+            cv2.line(tr_img,pt1,pt2,kalColor,thickness=lineW)
+            
         ## plotting the robot's position
         if not isinstance(self.rob,bool):
             pt1 = (int(self.rob[0]*scalef), int(self.rob[1]*scalef))
             pt2 = (int(self.rob[0]*scalef+math.cos(self.rbt_pos[2])*scalef*ilength), int(self.rob[1]*5+math.sin(self.rbt_pos[2])*scalef*ilength))
 
-            cv2.circle(tr_img,(int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)),irad,(0,0,255),thickness=2)
-            cv2.line(tr_img,pt1,pt2,(0,0,255),thickness=lineW)
+            cv2.circle(tr_img,(int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)),irad,visColor,thickness=2)
+            cv2.line(tr_img,pt1,pt2,visColor,thickness=lineW)
+            
+            if text:
+                tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)), font,  0.5, textColor, 1, cv2.LINE_AA) 
 
-            tr_img = cv2.putText(tr_img, 'rbt : ' + str(self.rbt_pos), (int(self.rbt_pos[0]*scalef),int(self.rbt_pos[1]*scalef)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
         ## plotting the goal
         if not isinstance(self.stop,bool):
-            cv2.circle(tr_img,(int(self.stop[0]*scalef),int(self.stop[1]*scalef)),irad,(255,0,0),thickness=lineW)
-            tr_img = cv2.putText(tr_img, 'goal : ' + str(self.stop), (int(self.stop[0]*scalef),int(self.stop[1]*scalef)), font,  0.5, (0,0,0), 1, cv2.LINE_AA) 
+            cv2.circle(tr_img,(int(self.stop[0]*scalef),int(self.stop[1]*scalef)),irad,goalColor,thickness=lineW)
+            if text:
+                tr_img = cv2.putText(tr_img, 'goal : ' + str(self.stop), (int(self.stop[0]*scalef),int(self.stop[1]*scalef)), font,  0.5, textColor, 1, cv2.LINE_AA) 
 
         return tr_img
         
     
-        
+    def loadImage(self, cap):
+        if isinstance(cap, str):
+            frame = cv2.imread(cap)
+            return True, frame
+        else:
+            return cap.read()
         
     """ Main vision loop """
     def mainLoop(self,d):
@@ -110,12 +156,14 @@ class ComputeVision():
 
        
         #getting the camera input
-
-        cap = cv2.VideoCapture(0)
+        if self.fileinput:
+            cap = "../sample_pictures/test_border.jpg"
+        else:
+            cap = cv2.VideoCapture(0)
+        
 
         #get the first frame to test
-        
-        ret, self.img = cap.read()
+        ret, self.img = self.loadImage(cap)
         self.img =  cv2.resize(self.img,(624,416))
 
         if not ret:
@@ -131,7 +179,7 @@ class ComputeVision():
             print("initializing vision")
 
         while(initfailed):
-            ret,frame = cap.read()
+            ret,frame = self.loadImage(cap)
             self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True)
             initfailed = self.vis.invalid
             flag = False
@@ -144,7 +192,10 @@ class ComputeVision():
         
         #querying the aim coordinates
         self.stop, ret = self.vis.returnDynamicAim()
-        self.stop = tuple(self.stop)
+        if not isinstance(self.stop,bool):
+            self.stop = tuple(self.stop)
+        else:
+            self.stop = False
         self.path = False
 
 
@@ -169,54 +220,57 @@ class ComputeVision():
         d['map'] = self.obstacles
         #self.pathComputed = False
         
-        self.g = Global(self.obstacles,False,self.stop)
+        self.g = Global(self.obstacles,False,self.stop,margin=1.5)
         
             
                 
         if self.verbose:
             print("Initial Path Planning Time : "+str(time.process_time()-t0))
 
-        while True: 
-            t0 = time.process_time() #we time each loop to get an idea of performance
+
+        runFlag = True
+        d['started'] = True
+        while runFlag: 
+
+            #########################################################################
+            #                                                                       #
+            #                        Vision Loop of the robot                       #
+            #                                                                       #
+            #########################################################################
+            
+             #we time each loop to get an idea of performance
+            t0 = time.process_time()
+
             # loading new image
-            ret, self.img = cap.read()
+            ret, self.img = self.loadImage(cap)
             self.vis.setframe(self.img) 
             
-            ## getting robot coordinates
+            ## getting robot coordinates and updating position for robot control loop
             self.rbt_pos, self.pos_valid = self.vis.returnDynamicCoordinates() 
             if not isinstance(self.rbt_pos,bool):
                 self.rob = tuple(self.rbt_pos[0:2])
             else:
                 self.rob = False
-                
             d['visPos'] = self.rbt_pos
 
             ## displaying whatever was computed
-            disp = self.display(d)
+            disp = self.display(d,text = False , trace = True)
             cv2.imshow('frame',disp)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                break      
+            key = cv2.waitKey(1) 
 
-            if isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or d['pathComputed']:#self.pathComputed
-                if self.verbose:
-                    pass
-                    #   print("No Path Computed")
-                #     print("stopB->"+str(isinstance(self.stop,bool)))
-                #     print("rbt_posB->"+str(isinstance(self.rbt_pos,bool)))
-                #     print("obstaclesB->"+str(isinstance(self.obstacles,bool)))
-                #     print("pathComputed->"+str(self.pathComputed))
-            else:
+            # detect keypress for graceful shutdown
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                d['running'] = False
+
+            # wait until we have start, finish and obstacles to compute path
+            if not (isinstance(self.stop, bool) or isinstance(self.rbt_pos, bool) or isinstance(self.obstacles, bool) or d['pathComputed']):
                 self.g.start = self.rob
                 self.path = self.g.returnPath(self.obstacles,self.rob,self.stop)
-                print(self.obstacles)
                 d['path'] = self.path
-                print(self.path)
-                #self.pathComputed = True
                 d['pathComputed'] = True
             
-            #if self.verbose:
-                #print("Full Vision Loop : "+str(time.process_time()-t0))
             d['vtime']=str(time.process_time()-t0)
+            runFlag = d['running']
 
 
 """ 
@@ -226,11 +280,12 @@ class ComputeVision():
 """
 class RobotControl():
     """ Constructor of the RobotControl class """
-    def __init__(self,verbose,address):
+    def __init__(self,verbose,address,norobot,save = False):
         self.verbose = True
         self.address = address
-
-        
+        self.norobot = norobot
+        self.history = []
+        self.save = save
 
     """ Starts the control process """
     def run(self,d):
@@ -239,6 +294,18 @@ class RobotControl():
 
     def join(self):
         self.mainLoopProcess.join()
+    
+    def copyProxyDict(self,d):
+        retDict = {}
+        for key in d.keys():
+            retDict[key] = d[key]
+
+        return retDict
+
+    def saveHistory(self):
+        if self.verbose:
+            print("-> Saving run history as : " + self.save)
+        pickle.dump(self.history, open(self.save,"wb"))
 
     """ Main control loop """
     def mainLoop(self,d):
@@ -248,28 +315,29 @@ class RobotControl():
             print("Starting control main loop")
         t = 0        
 
-        if self.verbose:
-            print("Connecting to Thymio at address "+self.address+" ... ")
-        try:
-            self.th = Thymio.serial(port=self.address, refreshing_rate=0.1)
-            time.sleep(3)
-            self.th.set_var_array("leds.top", [0, 0, 0])
+        if not self.norobot:
             if self.verbose:
-                print("connection successful !")
-        except:
-            print("Unexpected error:", sys.exc_info()[0])
-            return
+                print("Connecting to Thymio at address "+self.address+" ... ")
+            try:
+                self.th = Thymio.serial(port=self.address, refreshing_rate=0.1)
+                time.sleep(3)
+                self.th.set_var_array("leds.top", [0, 0, 0])
+                if self.verbose:
+                    print("connection successful !")
+            except:
+                print("Unexpected error:", sys.exc_info()[0])
+                return
 
-        if self.verbose:
-            print("Starting main loop")
+            if self.verbose:
+                print("Starting main loop")
 
         # Initialise robot class
 
         Init_pos = False
         Ts = 0.1
-        kp = 3    #0.15   #0.5
-        ka = 35  #0.4    #0.8
-        kb = -8   #-0.07  #-0.2
+        kp = 2 #3    #0.15   #0.5
+        ka = 22 #35  #0.4    #0.8
+        kb = -4 #-8   #-0.07  #-0.2
         vTOm=31.5 #30.30
         wTOm=(200*180)/(80*math.pi) #130.5 #
         thym = Robot(False,False,Ts, kp,ka,kb,vTOm,wTOm)
@@ -285,90 +353,143 @@ class RobotControl():
 
         init = False
         go=1
+        cnt = 1
 
-        while go:
+        """ wait until vision is go"""
+        while not d['started']:
+            time.sleep(0.1)
+        print("STARTING CONTROL, PRESS Q TO SHUTDOWN : \n")
+        with output(output_type='dict') as output_lines:
+            while go:
 
-            tps1 = time.monotonic()
-            
-            #########################################################################
-            # get the position of the robot given by the camera when it is possible #
-            #          if not possible set the updateWithCam bolean to False        # 
-            #########################################################################
+                tps1 = time.monotonic()
+                
+                cnt += 1
 
-            pos_cam = np.array(d['visPos'],ndmin=2).T
+                #########################################################################
+                # get the position of the robot given by the camera when it is possible #
+                #          if not possible set the updateWithCam bolean to False        # 
+                #########################################################################
 
-
-            #########################################################################
-            #                                                                       #
-            #                           FSM of the Robot                            #
-            #                                                                       #
-            #########################################################################
-            if thym.state =='ASTOLFI' : 
-                thym.ASTOLFI(self.th,Ts, filter,pos_cam)
-            elif thym.state == 'TURN' :
-                thym.TURN(self.th,Ts)
-            elif thym.state == 'LOCAL' :
-                thym.LOCAL(self.th,Ts, filter, pos_cam)
-                if thym.state == 'INIT':
-                    d['pathComputed'] = False
-                    d['path'] = False
-            elif thym.state == 'INIT' :
-                print('dpath',d['path'])
-                thym.INIT(d['path'],d['visPos'])
+                if not cnt%10 : 
+                    pos_cam = np.array(d['visPos'],ndmin=2).T
+                else :
+                    pos_cam = False
 
 
+                #########################################################################
+                #                                                                       #
+                #                           FSM of the Robot                            #
+                #                                                                       #
+                #########################################################################
 
-            tps2 = time.monotonic()
-            Ts=tps2-tps1
-            d['fltPos'] = thym.Pos
-            print('pos_cam',pos_cam)
+                if not self.norobot:
+                    if thym.state =='ASTOLFI' : 
+                        thym.ASTOLFI(self.th,Ts, filter,pos_cam)
+                    elif thym.state == 'TURN' :
+                        thym.TURN(self.th,Ts, filter, pos_cam)
+                    elif thym.state == 'LOCAL' :
+                        thym.LOCAL(self.th,Ts, filter, pos_cam)
+                        if thym.state == 'INIT':
+                            d['pathComputed'] = False
+                            d['path'] = False
+                    elif thym.state == 'INIT' :
+                        # print('dpath',d['path'])
+                        thym.INIT(d['path'],d['visPos'])
 
-            if thym.p is not None :
-                if thym.p<3 and thym.node==len(thym.global_path)-2:
-                    self.th.set_var("motor.left.target", 0)
-                    self.th.set_var("motor.right.target", 0)
-                    print('FININSH!!!!')
-                    tfinal=time.monotonic()
+
+
+                tps2 = time.monotonic()
+                Ts=tps2-tps1
+                d['fltPos'] = thym.Pos
+
+                if thym.p is not None :
+                    if thym.p<5 and thym.node==len(thym.global_path)-2:
+                        if not self.norobot:
+                            self.th.set_var("motor.left.target", 0)
+                            self.th.set_var("motor.right.target", 0)
+                        print('FININSH!!!!')
+                        tfinal=time.monotonic()
+                        go = 0
+
+
+                rt = time.process_time() - t0
+                t0 = time.process_time()
+
+                precision = 1 # we update display and history 10x a second
+
+                if round(time.process_time(),precision) > t: 
+                    t = round(time.process_time(),precision)
+                    """ Nice display for the robot control """
+                    if self.verbose:
+                        output_lines['HISTORY SAMPLES'] = len(self.history)
+                        output_lines['CTRL PERIOD'] = str(rt)
+                        output_lines['VISION PERIOD'] = str(d["vtime"])
+                        output_lines['VISION POS'] = str(d['visPos'])
+                        output_lines['KALMAN POS'] = str(d['fltPos'])
+                        output_lines['GOAL'] = str(d['goal'])
+                        output_lines['PATH'] = str(d['path'])
+                        output_lines['RUNNING'] = str(d['running'])
+                        if not self.norobot:
+                            output_lines['STATE'] = str(thym.state)
+                        else:
+                            output_lines['STATE'] = " NO ROBOT"
+                    histPoint = self.copyProxyDict(d)
+                    histPoint['time'] = time.process_time()
+                    if not self.norobot:
+                        histPoint['state'] = thym.state
+                    else:
+                        histPoint['state'] = "NO ROBOT"
+
+                    self.history.append(histPoint)
+
+                if d['running'] == False:
                     go = 0
+        print("CONTROL STOPPED\n")
 
-
-            rt = time.process_time() - t0
-            t0 = time.process_time()
-            if int(round(time.process_time(),0)) > t:
-                t = int(round(time.process_time(),0))
-                nd = dict(d)
-                if self.verbose:
-                    print("control period : " + str(rt))
-                    print("vision period : "+d["vtime"])
-                    print("position of robot : "+str(nd['visPos']))
+        if(self.save,str):
+            self.saveHistory()
 
             
 
 """
-    main function, root of all the program
+    main function, root the program
     @autor: Titou
 """
 if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "/dev/cu.usbmodem144401"
+    robotPort = "COM7"
+    saveFile = "history.pkl"
 
     """ Parsing stdin """
     verbose = False
+    fileinput = False
+    norobot = False
+    save = False
     for i in range (1,len(sys.argv)):
+        """ v flag is verbose """
         if sys.argv[i] == "v":
-            print("Running Verbose Mode")
+            print("RUNNING VERBOSE MODE")
             verbose = True
+        """ w flag is webcamless vision debug """
+        if sys.argv[i] == "w":
+            print("RUNNING WEBCAMLESS DEBUG MODE")
+            fileinput = True
+        """ r flag is robotless debug """
+        if sys.argv[i] == "r":
+            print("RUNNING ROBOTLESS DEBUG MODE")
+            norobot = True
+        """ f flag is for saving control history """
+        if sys.argv[i] == "r":
+            print("RUNNING WITH HISTORY")
+            save = saveFile
 
-    try:
-        ctrl = RobotControl(verbose,robotPort)
-    except:
-        sys.exit(1)
+
     
-    
+    """ initializing memory manager"""
     manager = Manager()
-
     d = manager.dict()
     d['visPos'] = False
     d['fltPos'] = False
@@ -377,11 +498,17 @@ if __name__ == '__main__':
     d['goal'] = False
     d['pathComputed'] = False
     d['vtime'] = "0"
+    d['started'] = False
+    d['running'] = True
 
+    """ initializing thread objects"""
+    cmptVis = ComputeVision(False, fileinput)
+    ctrl = RobotControl(verbose,robotPort,norobot,save)
 
-    cmptVis = ComputeVision(verbose)
-
+    """ starting threads """
     cmptVis.run(d)
     ctrl.run(d)
     cmptVis.join()
     ctrl.join()
+
+    print("Sucessful graceful exit")
