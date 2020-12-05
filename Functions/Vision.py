@@ -1,7 +1,7 @@
 """ Developped by: Flask """
 import cv2 #read video and images
 import numpy as np
-from skimage import measure, morphology,exposure
+from skimage import measure,exposure
 from scipy import linalg, ndimage
 import math
 import pickle
@@ -80,7 +80,7 @@ class Vision:
     def __init__(self,image, camera = "ANDROID FLASK", prevtrans = np.identity(3),\
                  verbose = False, setmanually = False, setextval = False):
         self.camera = camera
-        self.valext = (valmin,valmax) #default value
+        self.valext = np.percentile(image, (10, 90)).astype(int) #default value
         if setextval:
             self.valext = adjustlum(image,self.valext)
             
