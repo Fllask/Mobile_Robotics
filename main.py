@@ -449,6 +449,11 @@ class RobotControl():
                     histPoint['time'] = time.process_time()
                     if not self.norobot:
                         histPoint['state'] = thym.state
+                        histPoint['ML'] = thym.ML
+                        histPoint['MR'] = thym.MR
+                        histPoint['alpha'] = thym.a
+                        histPoint['beta'] = thym.b
+                        histPoint['rho'] = thym.p
                     else:
                         histPoint['state'] = "NO ROBOT"
 
