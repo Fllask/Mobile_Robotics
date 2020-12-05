@@ -120,7 +120,7 @@ class ComputeVision():
        
         #getting the camera input
         if self.fileinput:
-            cap = "../sample_pictures/sample.jpg"
+            cap = "../sample_pictures/test_border.jpg"
         else:
             cap = cv2.VideoCapture(0)
         
@@ -183,7 +183,7 @@ class ComputeVision():
         d['map'] = self.obstacles
         #self.pathComputed = False
         
-        self.g = Global(self.obstacles,False,self.stop)
+        self.g = Global(self.obstacles,False,self.stop,margin=1.5)
         
             
                 

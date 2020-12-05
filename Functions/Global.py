@@ -16,7 +16,7 @@ class Global:
     """ Handles global path planning """
 
     #constructor
-    def __init__(self, polyMap, start, finish):
+    def __init__(self, polyMap, start, finish, margin = 3):
 
         self.polyMap = []
         
@@ -32,7 +32,7 @@ class Global:
         self.utilities = Utilities()
         self.gPath = False
         self.path = False
-
+        self.margin = margin
     #plots the map and paths
     def plot(self,debugLines=False,emphasedLines=False):
         # I guess in the end we may just use the vision module map plot function
@@ -119,6 +119,15 @@ class Global:
             
         return intersectHelper(seg1,seg2) and intersectHelper(seg2,seg1)
 
+    def outOfBounds(self, node):
+
+        if(node[0]<self.margin or node[0]>(100-self.margin)):
+            return True
+        elif(node[1]<self.margin or node[1]>(100-self.margin)):
+            return True
+        else:
+            return False
+
 
     #computes all possible paths and generates the weighted graph for dikjstra
     def computePaths(self):
@@ -137,7 +146,7 @@ class Global:
                 paths.append(newSeg)
                 nextVertices.append(succ)
                 for ms in mapSeg:
-                    if self.intersect(ms,newSeg):
+                    if self.intersect(ms,newSeg) or self.outOfBounds(succ):
                         paths.pop()
                         nextVertices.pop()
                         break
@@ -179,6 +188,9 @@ class Global:
         list of 3d scipy vectors representing the points along the path"""
 
         self.computeGraph()
-        graphPath = nx.dijkstra_path(self.navGraph,source=self.start,target=self.finish)
+        try:
+            graphPath = nx.dijkstra_path(self.navGraph,source=self.start,target=self.finish)
+        except:
+            graphPath = False
         self.gPath = graphPath
         return graphPath
