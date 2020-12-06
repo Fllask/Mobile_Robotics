@@ -22,7 +22,7 @@ class Robot:
         self.kp=kp
         self.global_path=global_path       # global path in tuple
         self.Pos=InitPos                   # x,y and theta
-        self.node=0
+        self.node=0                        # use to estimate where the thymio is on the global path 
         
         self.go=1
         self.a=None                        # coordinate of the robot for the astolfi controller
@@ -44,7 +44,7 @@ class Robot:
         self.turn=0                        #0 if avoid obstacle by the left or 1 if avoid obstacle by the right
         self.cnt=1                         # counter to repeat the loop for going straight in local avoidance 
         self.idx_sensor=(1,0)              # index of the sensor use for local avoidance to know which sensor are important depending if we are turning left or right
-        self.sensor = None
+        self.sensor = None                 # values for the sensor
     
 
 
@@ -172,12 +172,12 @@ class Robot:
             self.state='LOCAL'
             right=self.sensor[4]+self.sensor[3]   #values of the right self.sensors   
             left=self.sensor[0]+self.sensor[1]    #values of the left self.sensors
-            if right>left:              #turn right if it feels the object on the left
-                self.turn=0
-                self.idx_sensor=(3,4)
-            else:                       #turn left if it feels the object on the right 
+            if right>left:              #turn left if it feels the object on the right
+                self.turn=0             #turn =0 means turn left
+                self.idx_sensor=(3,4)   # index of the sensor that we will use : 3 and 4
+            else:                       #turn right if it feels the object on the left
                 self.turn=1
-                self.idx_sensor=(1,0)
+                self.idx_sensor=(1,0)   
         return self.state
   
     def checkstate0(self,th):
@@ -218,16 +218,15 @@ class Robot:
         return self.state
 
     def compute_path(self,Ts):
+        ''' Function use to simulate the path our robot will take using the astolfi controller'''
         go=1
         self.pathcontrolx=[self.Pos[0]]
         self.pathcontroly=[self.Pos[1]]
+        self.Global_x=[self.global_path[0][0]]
+        self.Global_y=[self.global_path[0][1]]
+
         while go:
-            #print('loop')
 
-
-
-            self.Global_x=[self.global_path[0][0]]
-            self.Global_y=[self.global_path[0][1]]
 
             # compute rho, alpha and beta at time t+ts
             self.compute_state_equation(Ts)
@@ -306,12 +305,8 @@ class Robot:
             self.state='TURN'
             return self.state
 
-        ####################################################################
-        #                                                                  #
-        #                     Check for kidnapping                         #
-        #                                                                  #
-        ####################################################################
 
+        #check for kidnapping
         elif pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
             self.state = 'INIT'
             th.set_var('motor.left.target',0)
@@ -350,11 +345,7 @@ class Robot:
            Ts : time of one iteration of the loop while (we recompute every Ts)'''
         
 
-        ####################################################################
-        #                                                                  #
-        #                     Check for kidnapping                         #
-        #                                                                  #
-        ####################################################################
+        #check for kidnapping
         vect = self.get_states()
 
         if pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
@@ -396,11 +387,7 @@ class Robot:
         Ts : time of one iteration of the loop while (we recompute every Ts)
         '''
 
-        ####################################################################
-        #                                                                  #
-        #                     Check for kidnapping                         #
-        #                                                                  #
-        ####################################################################
+        #check for kidnapping
         vect = self.get_states()
 
         if pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
