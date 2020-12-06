@@ -186,9 +186,7 @@ def adjustlum(img,valext):
             ret, newimg = cap.read()
             if ret:
                 img = newimg
-    cv2.destroyWindow("corner masks")
-    cv2.destroyWindow("preprocess")
-    cv2.destroyWindow("color masks")
+    cv2.destroyAllWindows()
     return (valmin,valmax)
 def on_trackbar_max(val):
     global valmax

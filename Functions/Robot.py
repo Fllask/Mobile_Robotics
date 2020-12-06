@@ -1,4 +1,4 @@
-from Thymio import Thymio
+from Functions.Thymio import Thymio
 import os
 import sys
 import time
@@ -7,8 +7,8 @@ import math as m
 import pandas as pd
 import math as m
 import serial
-from Global import Global
-from Utilities import Utilities
+from Functions.Global import Global
+from Functions.Utilities import Utilities
 ut = Utilities()
 
 """ Developped by: Thomas """
@@ -217,7 +217,7 @@ class Robot:
 
         return self.state
 
-    def compute_path(self):
+    def compute_path(self,Ts):
         go=1
         self.pathcontrolx=[self.Pos[0]]
         self.pathcontroly=[self.Pos[1]]
@@ -230,10 +230,11 @@ class Robot:
             self.Global_y=[self.global_path[0][1]]
 
             # compute rho, alpha and beta at time t+ts
-            self.compute_state_equation(1)
+            self.compute_state_equation(Ts)
             # convert rho, beta and alpha in x y and theta (need those parameters for the filter)
             self.compute_Pos()
-            if abs(self.a)>m.pi/2:
+
+            if abs(self.a)>m.pi/2:   
                 self.a=0
                 self.Pos[2]=ut.compute_angle(self.Pos,self.global_path[self.node+1])
             # check if we are close to the next point in the global path and change the next goal in the astolfi controller if it is the case
