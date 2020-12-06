@@ -222,8 +222,8 @@ class Robot:
         while go:
             #print('loop')
 
-            self.pathcontrolx=[InitPos[0]]
-            self.pathcontroly=[InitPos[1]]
+            self.pathcontrolx=[self.Pos[0]]
+            self.pathcontroly=[self.Pos[1]]
 
             self.Global_x=[self.global_path[0][0]]
             self.Global_y=[self.global_path[0][1]]
