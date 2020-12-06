@@ -105,7 +105,17 @@ class Robot:
             self.state='ASTOLFI'
         
         return self.a
-
+    def checknotoutofboud(self,ML,MR):
+        if ML>500:
+            ML=500
+        if ML<-500:
+            ML=-500
+        if MR>500:
+            MR=500
+        if MR<-500:
+            MR=-500
+        return ML,MR
+        
     def compute_input(self):
         '''function convert the speed and angular speed to the values we need to give the robot'''
 
@@ -115,8 +125,11 @@ class Robot:
         vM=self.u[0]*self.vTOm
         wM=self.u[1]*self.wTOm
         
-        ML=vM+wM
-        MR=vM-wM
+        MLtest=vM+wM
+        MRtest=vM-wM
+
+        [ML,MR]=self.checknotoutofboud(MLtest,MRtest)
+        
         ML = ML if ML >= 0 else 2 ** 16 - 1 + ML
         ML = int(ML)
         MR = MR if MR >= 0 else 2 ** 16 - 1 + MR
