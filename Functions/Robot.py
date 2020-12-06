@@ -233,9 +233,7 @@ class Robot:
             self.compute_state_equation(Ts)
             # convert rho, beta and alpha in x y and theta (need those parameters for the filter)
             self.compute_Pos()
-            print(self.a)
-            if abs(self.a)>m.pi/2:
-                print(self.a)
+            if abs(self.a)>m.pi/2:   
                 self.a=0
                 self.Pos[2]=ut.compute_angle(self.Pos,self.global_path[self.node+1])
             # check if we are close to the next point in the global path and change the next goal in the astolfi controller if it is the case
