@@ -1,4 +1,4 @@
-from Thymio import Thymio
+from Functions.Thymio import Thymio
 import os
 import sys
 import time
@@ -7,8 +7,8 @@ import math as m
 import pandas as pd
 import math as m
 import serial
-from Global import Global
-from Utilities import Utilities
+from Functions.Global import Global
+from Functions.Utilities import Utilities
 ut = Utilities()
 
 """ Developped by: Thomas """
