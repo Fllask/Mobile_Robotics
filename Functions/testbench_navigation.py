@@ -51,12 +51,14 @@ thym.go=1
 
 
 pos_cam=False
+update_cam=False
+
 while thym.go:
     tps1 = time.monotonic()
 
 
     if thym.state =='ASTOLFI' : 
-        thym.ASTOLFI(th,Ts, filter,pos_cam)
+        thym.ASTOLFI(th,Ts, filter,pos_cam,update_cam)
     elif thym.state == 'TURN' :
         thym.TURN(th,Ts)
     elif thym.state == 'LOCAL' :

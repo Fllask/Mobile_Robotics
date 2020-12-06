@@ -29,6 +29,7 @@ class Filtering:
     
     @staticmethod
     def update(X_est,P_est_priori, zk, H, A, R,update_cam, verbose=False):
+        ''' Update step of the Kalman filter'''
         
         innovation = zk - np.dot(H,X_est)
        
@@ -43,10 +44,12 @@ class Filtering:
         return X_est, P_est
 
     def kalman(self, Xcam, X_est,th,Ts,update_cam):
-        """Xcam is measured state with camera,
-           X_est is predicted state from a priori state (by State Space), 
-           A, B, are state space parameters, 
-           V is the velocity"""
+        """Algorithm for the Kalman filter (Prediction + Update)
+           Xcam : measured position by the camera
+           Xest : a priori state estimate
+           th : thymio link to get the measured speed
+           Ts : sampling period
+           update_cam : boolean to know if we use the camera to update the Kalman Filter"""
 
         theta = self.robot.Pos[1]
         vR_measured = th.get_var('motor.right.speed')
@@ -76,11 +79,10 @@ class Filtering:
 
             X_est, P_est = self.update(X_est, P_est, Xcam, self.Hcam, A, self.Rcam, update_cam)
 
-
         #return
         self.Pest_priori = P_est
-
         return X_est
+
     def compute_kalman(self,pos_cam,states_robot,th,Ts,update_cam):
         ''' Function to call for the filtering
             pos_cam : position measured by camera
