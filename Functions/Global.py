@@ -1,6 +1,6 @@
 """ @author: Titou """
 
-from Utilities import Utilities
+from Functions.Utilities import Utilities
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as plt_colors
@@ -20,11 +20,14 @@ class Global:
 
         self.polyMap = []
         
-        for poly in polyMap:
-            nPoly = []
-            for p in poly:
-                nPoly.append( (float(p[0][0]),float(p[0][1])))
-            self.polyMap.append(nPoly)
+        if isinstance(polyMap[0][0][0],float):
+            self.polyMap = polyMap
+        else:
+            for poly in polyMap:
+                nPoly = []
+                for p in poly:
+                    nPoly.append( (float(p[0][0]),float(p[0][1])))
+                self.polyMap.append(nPoly)
 
         self.start = start
         self.finish = finish
