@@ -196,6 +196,7 @@ class ComputeVision():
             self.stop = tuple(self.stop)
         else:
             self.stop = False
+        d['goal']= self.stop
         self.path = False
 
 
@@ -220,7 +221,7 @@ class ComputeVision():
         d['map'] = self.obstacles
         #self.pathComputed = False
         
-        self.g = Global(self.obstacles,False,self.stop,margin=1.5)
+        self.g = Global(self.obstacles,False,self.stop,margin=3.)
         
             
                 
@@ -449,6 +450,12 @@ class RobotControl():
                     histPoint['time'] = time.process_time()
                     if not self.norobot:
                         histPoint['state'] = thym.state
+                        histPoint['ML'] = thym.ML
+                        histPoint['MR'] = thym.MR
+                        histPoint['alpha'] = thym.a
+                        histPoint['beta'] = thym.b
+                        histPoint['rho'] = thym.p
+                        histPoint['sensor'] = thym.sensor
                     else:
                         histPoint['state'] = "NO ROBOT"
 
@@ -471,7 +478,7 @@ if __name__ == '__main__':
 
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
-    robotPort = "/dev/cu.usbmodem144101"
+    robotPort = "/dev/cu.usbmodem143101"
     saveFile = "history.pkl"
 
     """ Parsing stdin """
