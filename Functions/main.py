@@ -157,7 +157,7 @@ class ComputeVision():
        
         #getting the camera input
         if self.fileinput:
-            cap = "../sample_pictures/test_border.jpg"
+            cap = "sample_pictures/test_border.jpg"
         else:
             cap = cv2.VideoCapture(1)
         
@@ -180,7 +180,7 @@ class ComputeVision():
 
         while(initfailed):
             ret,frame = self.loadImage(cap)
-            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True,setextval = True)
+            self.vis = v.Vision(frame, "ANDROID FLASK",verbose=flag,setmanually = True,setextval = False)
             initfailed = self.vis.invalid
             flag = False
         
@@ -196,6 +196,7 @@ class ComputeVision():
             self.stop = tuple(self.stop)
         else:
             self.stop = False
+        d['goal']= self.stop
         self.path = False
 
 
@@ -220,7 +221,7 @@ class ComputeVision():
         d['map'] = self.obstacles
         #self.pathComputed = False
         
-        self.g = Global(self.obstacles,False,self.stop,margin=1.5)
+        self.g = Global(self.obstacles,False,self.stop,margin=0.5)
         
             
                 
@@ -430,6 +431,8 @@ class RobotControl():
                 if round(time.process_time(),precision) > t: 
                     t = round(time.process_time(),precision)
                     """ Nice display for the robot control """
+                    if os.name == 'nt':
+                        os.system("cls")
                     if self.verbose:
                         output_lines['HISTORY SAMPLES'] = len(self.history)
                         output_lines['CTRL PERIOD'] = str(rt)
@@ -447,6 +450,11 @@ class RobotControl():
                     histPoint['time'] = time.process_time()
                     if not self.norobot:
                         histPoint['state'] = thym.state
+                        histPoint['ML'] = thym.ML
+                        histPoint['MR'] = thym.MR
+                        histPoint['alpha'] = thym.a
+                        histPoint['beta'] = thym.b
+                        histPoint['rho'] = thym.p
                     else:
                         histPoint['state'] = "NO ROBOT"
 
@@ -470,7 +478,7 @@ if __name__ == '__main__':
     print('OpenCL available:', cv2.ocl.haveOpenCL())
 
     robotPort = "COM3"
-    saveFile = "run5_local_avoidance.pkl"
+    saveFile = "run1.pkl"
 
     """ Parsing stdin """
     verbose = False
@@ -491,7 +499,7 @@ if __name__ == '__main__':
             print("RUNNING ROBOTLESS DEBUG MODE")
             norobot = True
         """ f flag is for saving control history """
-        if sys.argv[i] == "r":
+        if sys.argv[i] == "f":
             print("RUNNING WITH HISTORY")
             save = saveFile
 
