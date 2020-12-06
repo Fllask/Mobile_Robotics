@@ -1,6 +1,6 @@
 """ @author: Titou """
 
-from Functions.Utilities import Utilities
+from Utilities import Utilities
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
 import matplotlib.colors as plt_colors

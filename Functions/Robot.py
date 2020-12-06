@@ -1,4 +1,4 @@
-from Functions.Thymio import Thymio
+from Thymio import Thymio
 import os
 import sys
 import time
@@ -7,8 +7,8 @@ import math as m
 import pandas as pd
 import math as m
 import serial
-from Functions.Global import Global
-from Functions.Utilities import Utilities
+from Global import Global
+from Utilities import Utilities
 ut = Utilities()
 
 """ Developped by: Thomas """
@@ -219,11 +219,12 @@ class Robot:
 
     def compute_path(self):
         go=1
+        self.pathcontrolx=[self.Pos[0]]
+        self.pathcontroly=[self.Pos[1]]
         while go:
             #print('loop')
 
-            self.pathcontrolx=[self.Pos[0]]
-            self.pathcontroly=[self.Pos[1]]
+
 
             self.Global_x=[self.global_path[0][0]]
             self.Global_y=[self.global_path[0][1]]
