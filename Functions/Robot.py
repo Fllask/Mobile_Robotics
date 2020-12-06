@@ -7,7 +7,7 @@ import math as m
 import pandas as pd
 import math as m
 import serial
-from Funtions.Global import Global
+from Functions.Global import Global
 from Functions.Utilities import Utilities
 ut = Utilities()
 
