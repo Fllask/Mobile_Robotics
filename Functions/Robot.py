@@ -246,7 +246,7 @@ class Robot:
             self.Global_x.append(self.global_path[i][0])
             self.Global_y.append(self.global_path[i][1])
 
-        print('len',len(self.global_path))
+       
 
     def INIT(self,global_path, pos_init) : 
         ''' the robot stays in INIT state until it gets a global path and an initial position
@@ -310,7 +310,7 @@ class Robot:
         #                                                                  #
         ####################################################################
 
-        elif pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 100.:
+        elif pos_cam is not False and pos_cam[0] != 0 and np.linalg.norm(pos_cam[0:2] - vect[0:2],2) > 10.:
             self.state = 'INIT'
             th.set_var('motor.left.target',0)
             th.set_var('motor.right.target',0)
